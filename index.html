@@ -69,6 +69,9 @@ table.gt{border-collapse:collapse;table-layout:fixed;min-width:1180px;width:100%
 .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.links .lk{display:inline-block;margin:0}
 .ck{text-align:center}.ck input{width:18px;height:18px;margin-top:2px;cursor:pointer}.gt tr.dn td:not(.ck){opacity:.5}
 .bar{display:flex;gap:12px;align-items:center;margin-bottom:8px}.bar select{width:auto}
+[hidden]{display:none!important}
+.note{margin-top:6px;font-size:12px;padding:4px 6px}.rg{margin-top:6px;padding:2px 8px;font-size:12px;border-color:var(--line);color:var(--mute)}.sc{margin-top:4px;font-size:12px;color:var(--mute)}.sc.bad{color:var(--red)}
+.pv{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--mute)}.pv img{width:96px;height:54px;object-fit:cover;border-radius:4px;display:block}.bar{flex-wrap:wrap}details.field summary{cursor:pointer;font-weight:600}details.field label{margin-top:8px}
 </style>
 </head>
 <body>
@@ -88,31 +91,49 @@ table.gt{border-collapse:collapse;table-layout:fixed;min-width:1180px;width:100%
   <div class="field"><label for="aiplat">Platform video AI</label><select id="aiplat"><option>Google Flow</option><option>Gemini Video Generator</option><option>Platform lain</option></select></div>
   <div class="field"><label for="special">Instruksi khusus (opsional)</label><textarea id="special" style="min-height:100px" placeholder="Tulis hardware yang tersedia, software/workaround, dan instruksi lain. Contoh: Tidak ada Steam Deck fisik dan tidak ada workaround. Jangan pakai stock footage berlogo."></textarea></div>
   <div class="field"><label for="prov">Penyedia AI</label>
-   <select id="prov"><option value="gemini">Gemini (Google)</option><option value="openai">ChatGPT (OpenAI)</option><option value="claude">Claude (Anthropic)</option></select>
-   <label for="model" style="margin-top:8px">Versi model AI</label>
+   <select id="prov"><option value="gemini">Gemini (Google)</option><option value="openai">ChatGPT (OpenAI)</option><option value="claude">Claude (Anthropic)</option><option value="manual">Salin-tempel (ChatGPT / Claude gratis, tanpa API)</option></select>
+   <div id="apiBox"><label for="model" style="margin-top:8px">Versi model AI</label>
    <select id="model"></select>
    <input id="key" type="password" autocomplete="off" aria-label="API key" style="margin-top:6px" placeholder="Tempel API key Anda">
    <button type="button" id="loadm" style="margin-top:6px;width:100%">Cek model yang tersedia untuk key ini</button>
    <label style="font-weight:400;font-size:13px;margin-top:6px"><input id="remember" type="checkbox" style="width:auto;margin-right:6px">Ingat key di perangkat ini</label>
    <p class="status">Key hanya dikirim ke penyedia AI yang Anda pilih, bukan ke server lain. <a id="keyhelp" href="#" target="_blank" rel="noopener noreferrer">Cara mendapatkan key</a></p></div>
+   <label id="gbox" style="font-weight:400;font-size:13px;margin-top:8px"><input id="gsearch" type="checkbox" style="width:auto;margin-right:6px">Aktifkan pencarian web Google (verifikasi URL; di paket gratis ada batas pemakaian)</label>
+   <p id="mbox" class="status" hidden>Mode ini tidak memakai API. Aplikasi menyiapkan prompt, Anda menyalinnya ke ChatGPT atau Claude (akun gratis boleh), lalu menempel jawabannya kembali. Aktifkan fitur pencarian web di chat tersebut jika tersedia agar URL bisa diverifikasi.</p></div>
   <div class="field"><label for="preset">Gaya editing video</label>
    <select id="preset"><option value="">Tidak ditentukan (opsional)</option></select>
    <label for="rules" style="font-weight:400;font-size:13px;margin-top:8px">Detail aturan editing (bisa diedit atau tulis sendiri)</label>
    <textarea id="rules" class="rules" placeholder="Tulis gaya editing channel Anda: tempo cut, tipe visual favorit, gaya teks, warna, SFX/musik, transisi, dan hal yang dilarang. Aturan ini disimpan otomatis di browser dan didahulukan di atas aturan umum."></textarea></div>
+  <details class="field" id="adv"><summary>Pengaturan lanjutan</summary>
+   <label for="mpx">Master prompt (bisa diedit)</label><textarea id="mpx" style="min-height:160px"></textarea>
+   <button type="button" id="mreset" style="margin-top:6px">Reset master prompt</button>
+   <label for="pxkey">Pexels API key (opsional, untuk pratinjau stok)</label><input id="pxkey" type="password" autocomplete="off">
+   <label for="wps">Kecepatan bicara (kata/detik)</label><input id="wps" type="number" step="0.1" min="0.5" value="2.6">
+  </details>
   <button class="go" id="run">Buat footage guide</button>
   <p class="status" id="status" role="status"></p>
  </div>
  <div class="card" id="exp" hidden>
   <button class="go" id="xlsx">Unduh Excel (.xlsx)</button><div class="row2" style="margin-top:8px"><button id="csv">CSV</button><button id="json">JSON</button></div>
+  <div class="row2" style="margin-top:8px"><button type="button" id="edl">Penanda EDL</button><button type="button" id="audit">Evaluasi mutu (AI)</button></div>
  </div>
 <div class="card" id="histcard">
   <div class="row2" style="align-items:center;justify-content:space-between;margin-bottom:6px"><label style="margin:0">Riwayat</label><button type="button" id="histclear" style="flex:none;padding:3px 10px;font-size:13px">Hapus semua</button></div>
   <div id="hist"></div>
+  <div class="row2" style="margin-bottom:6px"><button type="button" id="hexp">Ekspor riwayat</button><button type="button" id="himp">Impor riwayat</button></div><input type="file" id="hfile" accept=".json,application/json" hidden>
   <p class="status">Riwayat disimpan di browser perangkat ini.</p>
  </div>
 </aside>
 
-<main id="out"><div class="empty">Tabel footage guide akan muncul di sini.</div></main>
+<main><div class="card" id="manual" hidden style="margin-bottom:12px">
+ <b id="mtitle"></b>
+ <p class="status">1) Salin prompt. 2) Tempel di ChatGPT atau Claude (aktifkan pencarian web bila ada). 3) Tempel jawabannya di kotak bawah, lalu proses.</p>
+ <div class="row2" style="margin-bottom:8px;align-items:center"><button type="button" id="mcopy">Salin prompt</button><a class="lk" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Buka ChatGPT</a><a class="lk" href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">Buka Claude</a></div>
+ <textarea id="mprompt" readonly hidden style="min-height:110px;margin-bottom:8px"></textarea>
+ <label for="mpaste">Tempel jawaban AI di sini</label>
+ <textarea id="mpaste" style="min-height:140px" placeholder="Tempel jawaban AI (array JSON)"></textarea>
+ <div class="row2" style="margin-top:8px"><button type="button" class="go" id="mapply">Proses jawaban</button><button type="button" id="mcancel" style="flex:none">Batal</button></div>
+</div><div id="out"><div class="empty">Tabel footage guide akan muncul di sini.</div></div></main>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -130,10 +151,14 @@ const PROV={
  openai:{model:"gpt-6.1-sol",list:["gpt-6.1-sol","gpt-6-astra","gpt-6-luna"],help:"https://platform.openai.com/api-keys"},
  claude:{model:"claude-sonnet-5-5",list:["claude-sonnet-5-5","claude-opus-5-5","claude-haiku-5-5","claude-fable-5-1"],help:"https://console.anthropic.com/settings/keys"}
 };
+PROV.manual={model:"",list:[],help:"#"};
+function applyProvUI(){const p=$("prov").value;$("apiBox").hidden=p==="manual";$("gbox").hidden=p!=="gemini";$("mbox").hidden=p!=="manual"}
+try{$("gsearch").checked=localStorage.getItem("sb_gs")==="1"}catch(e){}
+$("gsearch").onchange=()=>{try{localStorage.setItem("sb_gs",$("gsearch").checked?"1":"0")}catch(e){}};
 function loadProv(){
   const p=$("prov").value;let k="",m="",r=false;
   try{const l=localStorage.getItem("sb_key_"+p);r=!!l;k=l||sessionStorage.getItem("sb_key_"+p)||"";m=localStorage.getItem("sb_model3_"+p)||""}catch(e){}
-  $("key").value=k;fillList(PROV[p].list,m||PROV[p].model);$("keyhelp").href=PROV[p].help;$("remember").checked=r;
+  $("key").value=k;fillList(PROV[p].list,m||PROV[p].model);$("keyhelp").href=PROV[p].help;$("remember").checked=r;applyProvUI();
 }
 function saveProv(){
   const p=$("prov").value;
@@ -178,9 +203,16 @@ $("loadm").onclick=loadModels;
 
 function parseJ(t){
   t=String(t||"").replace(/```json|```/g,"");
-  const a=t.indexOf("["),b=t.lastIndexOf("]");
-  if(a<0||b<0)throw{code:"format",message:"Jawaban AI bukan JSON yang valid, coba lagi."};
-  return JSON.parse(t.slice(a,b+1));
+  const a=t.search(/\[\s*\{/);
+  if(a<0)throw{code:"format",message:"Jawaban AI bukan JSON yang valid, coba lagi."};
+  let d=0,str=false,esc=false,end=-1;
+  for(let i=a;i<t.length;i++){
+    const c=t[i];
+    if(str){if(esc)esc=false;else if(c==="\\")esc=true;else if(c==='"')str=false;continue}
+    if(c==='"')str=true;else if(c==="[")d++;else if(c==="]"){d--;if(d===0){end=i;break}}
+  }
+  if(end<0)throw{code:"format",message:"JSON terpotong atau tidak lengkap. Minta AI mengirim ulang array lengkap."};
+  return JSON.parse(t.slice(a,end+1));
 }
 async function callAI(prompt){
   const p=$("prov").value,key=$("key").value.trim(),model=$("model").value.trim()||PROV[p].model;
@@ -189,7 +221,7 @@ async function callAI(prompt){
     const gm=model.replace(/^models\//i,"").trim().toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9.\-_]/g,"");
     url="https://generativelanguage.googleapis.com/v1beta/models/"+(gm||PROV.gemini.model)+":generateContent";
     headers["x-goog-api-key"]=key;
-    body={contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json"}};
+    body={contents:[{parts:[{text:prompt}]}]};if($("gsearch").checked)body.tools=[{google_search:{}}];else body.generationConfig={responseMimeType:"application/json"};
     pick=j=>j.candidates[0].content.parts.map(x=>x.text||"").join("");
   }else if(p==="openai"){
     url="https://api.openai.com/v1/chat/completions";
@@ -251,17 +283,24 @@ $("srcadd").onclick=()=>{const v=$("srcnew").value.trim();if(!v)return;if(!SRC.i
 $("srcnew").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("srcadd").onclick()}};
 function srcText(){return SEL.length?SEL.join(", ")+" (use ONLY these sources; do not use any other source)":"Not specified (choose according to the master prompt rules)"}
 renderSrc();
+function searchOn(){const p=$("prov").value;return p==="manual"||(p==="gemini"&&$("gsearch").checked)}
+function ovr(){
+  let o=OVERRIDE;
+  if(searchOn())o=o.replace("Kamu tidak bisa browsing web dan tidak membuat Excel.","Kamu boleh menelusuri web untuk memverifikasi sumber, dan tidak membuat Excel.")+"\n- Karena kamu bisa menelusuri web: source_url dan extra_sources boleh berisi URL halaman spesifik, tetapi HANYA yang benar-benar sudah kamu temukan dan buka/verifikasi. Jika gagal diverifikasi, tetap tulis URL BELUM TERVERIFIKASI.";
+  if($("prov").value==="manual")o+="\n- Bungkus jawaban akhir dalam SATU blok kode ```json berisi array saja.";
+  return o;
+}
 function buildPrompt(c,i,n){
   const sp=[$("special").value.trim(),$("rules").value.trim()?"VIDEO EDITING STYLE"+($("preset").value?" ("+$("preset").value+")":"")+":\n"+$("rules").value.trim():""].filter(Boolean).join("\n\n")||"-";
   const inp="VIDEO TYPE:\n"+$("style").value+"\n\nVISUAL MODE:\n"+$("vmode").value+"\n\nPRIMARY SUBJECT:\n"+($("topic").value||"-")+"\n\nAVAILABLE HARDWARE / SOFTWARE / WORKAROUND:\nSee SPECIAL INSTRUCTIONS. If nothing is stated there, assume NONE is available.\n\nPREFERRED SOURCES:\n"+srcText()+"\n\nAI VIDEO PLATFORM:\n"+$("aiplat").value+"\n\nSPECIAL INSTRUCTIONS:\n"+sp;
-  return MASTER+"\n\n"+OVERRIDE+"\n\nINPUT YANG SUDAH DIISI:\n"+inp+"\n\nSCRIPT (bagian "+(i+1)+" dari "+n+"):\n"+c;
+  return masterText()+"\n\n"+ovr()+"\n\nINPUT YANG SUDAH DIISI:\n"+inp+ctxNote()+"\n\nSCRIPT (bagian "+(i+1)+" dari "+n+"):\n"+c;
 }
 function check(r,n){
   const f=[];
   if(!n.includes(nz(r.vo)))f.push("VO tidak persis sama dengan skrip");
   if($("vmode").value==="AUDIO ONLY"&&/TALKING HEAD/i.test(r.shot_type))f.push("Talking head dilarang di mode AUDIO ONLY");
   if(/AI VIDEO/i.test(r.shot_type)&&!r.ai_prompt.trim())f.push("Baris AI tanpa prompt");
-  if(/ENVATO/i.test(r.shot_type)&&!/envato\.com\/\S+/i.test(r.how_to_get))f.push("Isi URL item Envato");
+  if(/ENVATO/i.test(r.shot_type)&&!r.envato_url&&!/envato\.com\/\S+/i.test(r.how_to_get))f.push("Isi URL item Envato");
   if(/SCREEN RECORD/i.test(r.shot_type)&&/BELUM TERVERIFIKASI/i.test(r.how_to_get))f.push("Verifikasi URL sumber");
   return f;
 }
@@ -272,7 +311,7 @@ function allow(n){return !SEL.length||SEL.includes(n)}
 function srcLinks(r){
   const out=[],add=(t,u)=>{if(OKU(u)&&!out.some(o=>o[1]===u))out.push([t,u])};
   const q=(r.search_query||"").trim(),st=r.shot_type||"";
-  add("Buka sumber",(r.source_url||"").trim());
+  add("Buka sumber",(r.source_url||"").trim());add("Item Envato",(r.envato_url||"").trim());
   (r.extra_sources||[]).forEach(x=>add(x.label||"Sumber",x.url));
   (r.how_to_get.match(/https?:\/\/[^\s)"'<>]+/g)||[]).map(u=>u.replace(/[.,;]+$/,"")).forEach(u=>add("Buka link",u));
   if(q){
@@ -290,12 +329,12 @@ function srcLinks(r){
 let flt="all";
 function updateCount(){const c=$("cnt");if(c)c.textContent=rows.filter(r=>r.done).length+" dari "+rows.length+" sudah diterapkan"}
 function render(){
-  const out=$("out");out.replaceChildren();$("exp").hidden=!rows.length;
+  const out=$("out");out.replaceChildren();$("exp").hidden=!rows.length;const SC=nz($("script").value);rows.forEach(r=>{r.flags=check(r,SC)});
   if(!rows.length){out.append(h("div","empty","Tabel footage guide akan muncul di sini."));return}
   const bar=h("div","bar"),sel=document.createElement("select"),cnt=h("span","dur","");cnt.id="cnt";
   [["all","Semua baris"],["todo","Belum diterapkan"],["done","Sudah diterapkan"]].forEach(([v,l])=>{const o=h("option",null,l);o.value=v;sel.append(o)});
   sel.value=flt;sel.setAttribute("aria-label","Filter status penerapan");sel.onchange=()=>{flt=sel.value;render()};
-  bar.append(sel,cnt);out.append(bar);
+  bar.append(sel,cnt,h("span","dur",insights()));out.append(bar);
   const t=h("table","gt"),hd=h("thead"),hr=h("tr"),th0=h("th",null,"✓");th0.title="Sudah diterapkan di video";hr.append(th0);
   COL5.forEach(c=>hr.append(h("th",null,c[1])));hd.append(hr);t.append(hd);
   const tb=h("tbody");let shown=0;
@@ -307,25 +346,69 @@ function render(){
     c0.append(cb);tr.append(c0);
     COL5.forEach(([k])=>{
       const td=h("td"),d=h("div","cell",r[k]);d.contentEditable="true";d.spellcheck=false;d.oninput=()=>{r[k]=d.innerText;persist()};td.append(d);
-      if(k==="vo"&&r.flags.length)td.append(h("div","flag",r.flags.join(" · ")));
+      if(k==="vo"){
+        if(r.flags.length)td.append(h("div","flag",r.flags.join(" · ")));
+        if(r.score)td.append(h("div","sc"+(r.score<=2?" bad":""),"Skor "+r.score+"/5"+(r.tip?" — "+r.tip:"")));
+        const nt=document.createElement("input");nt.className="note";nt.placeholder="Catatan editor";nt.value=r.note||"";nt.oninput=()=>{r.note=nt.value;persist()};td.append(nt);
+        const rg=h("button","rg","↻ Buat ulang baris");rg.type="button";rg.onclick=()=>regen(r);td.append(rg);
+      }
       if(k==="how_to_get"){
         const lb=h("div","links"),fill=()=>{lb.replaceChildren();srcLinks(r).forEach(([tx,u])=>{const a=h("a","lk",tx);a.href=u;a.target="_blank";a.rel="noopener noreferrer";lb.append(a)})};
+        if(/ENVATO/i.test(r.shot_type)){const eu=document.createElement("input");eu.className="note";eu.placeholder="Tempel URL item Envato yang dipilih";eu.value=r.envato_url||"";eu.oninput=()=>{r.envato_url=eu.value.trim();fill();persist()};td.append(eu)}
         fill();td.append(lb);d.addEventListener("input",fill);
+        const tools=h("div","links"),vf=h("button","lk",r.vf?"✓ Terverifikasi":"Tandai terverifikasi");vf.type="button";
+        vf.onclick=()=>{r.vf=!r.vf;vf.textContent=r.vf?"✓ Terverifikasi":"Tandai terverifikasi";persist()};tools.append(vf);
+        if(/ENVATO/i.test(r.shot_type)&&r.search_query){const pv=h("button","lk","Pratinjau stok"),bx=h("div","pv");pv.type="button";pv.onclick=()=>pexels(r,bx);tools.append(pv);td.append(tools,bx)}else td.append(tools);
       }
       tr.append(td)});
     tb.append(tr)});
   if(!shown){const tr=h("tr"),td=h("td",null,"Tidak ada baris yang cocok dengan filter.");td.colSpan=6;tr.append(td);tb.append(tr)}
   t.append(tb);const w=h("div","tw");w.append(t);out.append(w);updateCount();
 }
+function ingest(res,c,i,warn){
+  const arr=Array.isArray(res)?res:(res&&res.rows)||[],n=nz(c);let cov=0;
+  arr.forEach(x=>{const r={};COL5.forEach(([k])=>r[k]=String(x[k]==null?"":x[k]));r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];r.done=false;r.flags=check(r,n);cov+=nz(r.vo).length;rows.push(r)});
+  if(cov<n.length*0.9)warn.push("bagian "+(i+1)+" baru mencakup "+Math.round(cov/Math.max(n.length,1)*100)+"% skrip");
+}
+function finishMsg(warn){
+  const fl=rows.filter(r=>r.flags.length).length,ev=rows.filter(r=>/ENVATO/i.test(r.shot_type)).length;
+  $("status").className="status";
+  $("status").textContent="Selesai: "+rows.length+" baris, Envato "+Math.round(ev/Math.max(rows.length,1)*100)+"%, "+fl+" baris perlu dicek (tanda merah)."+(warn.length?" Peringatan: "+warn.join("; ")+".":"");
+}
+let man=null;
+function manShow(){
+  $("manual").hidden=false;$("mtitle").textContent=man.one?man.one.title:"Bagian "+(man.i+1)+" dari "+man.cs.length;
+  $("mpaste").value="";$("mprompt").hidden=true;$("mcopy").textContent=man.one?"Salin prompt":"Salin prompt bagian "+(man.i+1);
+  $("manual").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+async function manCopy(){
+  if(!man)return;
+  const t=man.one?man.one.prompt:buildPrompt(man.cs[man.i],man.i,man.cs.length),st=$("status");
+  try{await navigator.clipboard.writeText(t);st.className="status";st.textContent="Prompt tersalin. Tempel di ChatGPT atau Claude."}
+  catch(e){const a=$("mprompt");a.value=t;a.hidden=false;a.select();st.className="status err";st.textContent="Tidak bisa menyalin otomatis. Salin teks yang tampil di kartu secara manual."}
+}
+function manApply(){
+  if(!man)return;const st=$("status");
+  try{
+    const res=parseJ($("mpaste").value);
+    if(man.one){const o=man.one;man=null;$("manual").hidden=true;o.apply(res);st.className="status";st.textContent=o.title+": selesai.";return}
+    ingest(res,man.cs[man.i],man.i,man.warn);render();man.i++;
+    if(man.i<man.cs.length){manShow();st.className="status";st.textContent="Bagian "+man.i+" masuk. Lanjut ke bagian "+(man.i+1)+" dari "+man.cs.length+"."}
+    else{const w=man.warn;man=null;$("manual").hidden=true;finishMsg(w);saveEntry()}
+  }catch(e){st.className="status err";st.textContent="Jawaban tidak bisa dibaca: "+((e&&e.message)||"pastikan yang ditempel berupa array JSON")}
+}
+$("mcopy").onclick=manCopy;$("mapply").onclick=manApply;
+$("mcancel").onclick=()=>{man=null;$("manual").hidden=true;if(rows.length)saveEntry();$("status").className="status";$("status").textContent="Mode salin-tempel dibatalkan."};
 async function run(){
   const text=$("script").value.trim(),st=$("status");
   if(!text){st.className="status err";st.textContent="Isi skrip dulu.";return}
+  if($("prov").value==="manual"){rows=[];curId=null;render();man={cs:chunks(text),i:0,warn:[]};manShow();st.className="status";st.textContent="Mode salin-tempel: ikuti langkah di kartu di atas tabel.";return}
   if(!$("key").value.trim()){st.className="status err";st.textContent="Isi API key dulu untuk penyedia AI yang dipilih.";return}
   const cs=chunks(text),warn=[];rows=[];curId=null;render();$("run").disabled=true;st.className="status";
   try{
     for(let i=0;i<cs.length;i++){
       st.textContent="Menyusun bagian "+(i+1)+" dari "+cs.length+"...";
-      const res=await callAI(buildPrompt(cs[i],i,cs.length));
+      const res=await callRetry(buildPrompt(cs[i],i,cs.length));
       const arr=Array.isArray(res)?res:(res&&res.rows)||[],n=nz(cs[i]);let cov=0;
       arr.forEach(x=>{const r={};COL5.forEach(([k])=>r[k]=String(x[k]==null?"":x[k]));r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];r.done=false;r.flags=check(r,n);cov+=nz(r.vo).length;rows.push(r)});
       if(cov<n.length*0.9)warn.push("bagian "+(i+1)+" baru mencakup "+Math.round(cov/n.length*100)+"% skrip");
@@ -343,9 +426,9 @@ function dl(name,blob){const u=URL.createObjectURL(blob),a=document.createElemen
 async function xlsx(){
   if(!window.ExcelJS){$("status").className="status err";$("status").textContent="Pustaka Excel gagal dimuat. Cek koneksi atau pakai CSV.";return}
   const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("FOOTAGE GUIDE",{views:[{state:"frozen",ySplit:1}]});
-  ws.columns=COL5.map(c=>({header:c[1],key:c[0],width:c[2]})).concat([{header:"LINK 1",key:"l1",width:16},{header:"LINK 2",key:"l2",width:16},{header:"LINK 3",key:"l3",width:16},{header:"DONE",key:"done",width:8}]);
-  rows.forEach(r=>{const L=srcLinks(r).slice(0,3),row=ws.addRow(COL5.map(c=>r[c[0]]).concat([0,1,2].map(i=>L[i]?{text:L[i][0],hyperlink:L[i][1]}:""),[r.done?"✓":""]));[6,7,8].forEach((c,i)=>{if(L[i])row.getCell(c).font={color:{argb:"FF0563C1"},underline:true}})});
-  ws.autoFilter="A1:I1";
+  ws.columns=COL5.map(c=>({header:c[1],key:c[0],width:c[2]})).concat([{header:"LINK 1",key:"l1",width:16},{header:"LINK 2",key:"l2",width:16},{header:"LINK 3",key:"l3",width:16},{header:"DONE",key:"done",width:8},{header:"NOTE",key:"note",width:30}]);
+  rows.forEach(r=>{const L=srcLinks(r).slice(0,3),row=ws.addRow(COL5.map(c=>r[c[0]]).concat([0,1,2].map(i=>L[i]?{text:L[i][0],hyperlink:L[i][1]}:""),[r.done?"✓":"",r.note||""]));[6,7,8].forEach((c,i)=>{if(L[i])row.getCell(c).font={color:{argb:"FF0563C1"},underline:true}})});
+  ws.autoFilter="A1:J1";
   ws.eachRow((row,i)=>row.eachCell(c=>{c.alignment={wrapText:true,vertical:"top"};if(i===1){c.font={bold:true};c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE5E7EB"}}}}));
   const s2=wb.addWorksheet("SHOT MIX SUMMARY");s2.columns=[{header:"SHOT TYPE",width:40},{header:"NUMBER OF SCENES",width:20},{header:"APPROXIMATE %",width:18}];
   mix().forEach(([k,v])=>s2.addRow([k,v,Math.round(v/rows.length*100)+"%"]));s2.getRow(1).font={bold:true};
@@ -396,10 +479,92 @@ function openEntry(id){
   $("out").scrollIntoView({behavior:"smooth",block:"start"});
 }
 $("histclear").onclick=()=>{if(!confirm("Hapus SEMUA riwayat? Tindakan ini tidak bisa dibatalkan."))return;storeHist([]);curId=null;renderHist()};
+function masterText(){return $("mpx").value.trim()||MASTER}
+function ctxNote(){
+  if(!rows.length)return"";
+  const ev=rows.filter(r=>/ENVATO/i.test(r.shot_type)).length;
+  return "\n\nKONTEKS BAGIAN SEBELUMNYA (jaga variasi shot dan target Envato 5-15% untuk seluruh video): sejauh ini "+rows.length+" baris ("+mix().map(([k,v])=>k+" "+v).join(", ")+"); ENVATO "+Math.round(ev/rows.length*100)+"%. 3 baris terakhir bertipe: "+rows.slice(-3).map(r=>r.shot_type).join(" > ")+".";
+}
+async function callRetry(p){
+  for(let a=1;;a++){
+    try{return await callAI(p)}
+    catch(e){const c=e&&e.code,ok=c==="format"||c==="jaringan"||c===429||c===500||c===503||c===529||e instanceof SyntaxError;
+      if(!ok||a>=3)throw e;$("status").className="status";$("status").textContent="Mencoba ulang ("+a+"/2)...";await new Promise(r=>setTimeout(r,1500*a))}
+  }
+}
+async function ask(title,prompt,apply){
+  const st=$("status");st.className="status";
+  if($("prov").value==="manual"){man={cs:[""],i:0,warn:[],one:{title,prompt,apply}};manShow();st.textContent="Ikuti langkah di kartu di atas tabel.";return}
+  st.textContent=title+"...";
+  try{apply(await callRetry(prompt));st.textContent=title+": selesai."}
+  catch(e){st.className="status err";st.textContent="Gagal"+(e&&e.code?" ("+e.code+")":"")+": "+((e&&e.message)||"coba lagi")}
+}
+function regen(r){
+  const i=rows.indexOf(r),pv=rows[i-1],nx=rows[i+1];
+  const p=buildPrompt(r.vo,0,1)+"\n\nTUGAS KHUSUS: buat ULANG hanya SATU baris footage guide untuk VO di atas (array JSON berisi satu objek, vo harus sama persis). Berikan alternatif yang berbeda dari versi lama ("+r.shot_type+": "+r.scene+"). Baris sebelumnya bertipe "+(pv?pv.shot_type:"-")+", berikutnya "+(nx?nx.shot_type:"-")+"; jaga variasi.";
+  ask("Membuat ulang baris "+(i+1),p,res=>{
+    const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
+    COL5.forEach(([k])=>{if(k!=="vo")r[k]=String(x[k]==null?"":x[k])});
+    r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");
+    r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];
+    r.score=0;r.tip="";r.envato_url="";r.vf=false;render();persist();
+  });
+}
+function audit(){
+  if(!rows.length)return;
+  const lst=rows.slice(0,80).map((r,i)=>(i+1)+" | "+r.vo+" | "+r.shot_type+" | "+r.scene+" | "+(r.how_to_get||"").slice(0,120)).join("\n");
+  ask("Evaluasi mutu","Kamu editor video senior. Nilai kecocokan tiap baris footage guide berikut (nomor | VO | tipe shot | scene | sumber) terhadap isi VO: skor 1-5 (5 = sangat cocok, sumber realistis dan relevan) dan satu saran perbaikan singkat (maks 15 kata, bahasa Indonesia, kosong jika skor 5). Balas HANYA array JSON: [{\"n\":1,\"score\":4,\"tip\":\"...\"}].\n\n"+lst,
+    res=>{(Array.isArray(res)?res:[]).forEach(x=>{const r=rows[(x.n|0)-1];if(r){r.score=+x.score||0;r.tip=String(x.tip||"")}});render();persist()});
+}
+function insights(){
+  const w=Math.max(+$("wps").value||2.6,0.5),words=rows.reduce((a,r)=>a+r.vo.split(/\s+/).filter(Boolean).length,0),sec=Math.round(words/w);
+  const ev=Math.round(rows.filter(r=>/ENVATO/i.test(r.shot_type)).length/Math.max(rows.length,1)*100);
+  let run=1,best=1,end=0;
+  for(let i=1;i<rows.length;i++){if(rows[i].shot_type&&rows[i].shot_type===rows[i-1].shot_type){run++;if(run>best){best=run;end=i}}else run=1}
+  const o=["Estimasi durasi ±"+Math.floor(sec/60)+" mnt "+sec%60+" dtk","Envato "+ev+"%"+(ev<5||ev>15?" (target 5–15%)":"")];
+  if(best>=4)o.push("Ada "+best+" baris berurutan bertipe sama (baris "+(end-best+2)+"–"+(end+1)+")");
+  return o.join(" · ");
+}
+async function pexels(r,box){
+  const k=$("pxkey").value.trim();if(!k){box.textContent="Isi Pexels API key di Pengaturan lanjutan.";return}
+  box.textContent="Memuat...";
+  try{
+    const j=await(await fetch("https://api.pexels.com/videos/search?per_page=4&query="+encodeURIComponent(r.search_query),{headers:{Authorization:k}})).json();
+    box.replaceChildren();
+    (j.videos||[]).forEach(v=>{const a=h("a"),im=document.createElement("img");im.src=v.image;im.alt="";im.loading="lazy";a.href=v.url;a.target="_blank";a.rel="noopener noreferrer";a.title=(v.duration||"?")+" dtk";a.append(im);box.append(a)});
+    if(!box.children.length)box.textContent="Tidak ada hasil.";
+  }catch(e){box.textContent="Gagal memuat pratinjau (cek key atau pembatasan browser)."}
+}
+function tc(sec,f){const n=Math.round((sec+3600)*f),z=x=>String(x).padStart(2,"0");return[Math.floor(n/(3600*f)),Math.floor(n/(60*f))%60,Math.floor(n/f)%60,n%f].map(z).join(":")}
+function edl(){
+  if(!rows.length)return;
+  const w=Math.max(+$("wps").value||2.6,0.5),f=30;let t=0,o="TITLE: Footage Guide\nFCM: NON-DROP FRAME\n\n";
+  rows.forEach((r,i)=>{
+    const d=Math.max(r.vo.split(/\s+/).filter(Boolean).length/w,1),a=tc(t,f);t+=d;const b=tc(t,f);
+    o+=String(i+1).padStart(3,"0")+"  001      V     C        "+a+" "+b+" "+a+" "+b+"\n |C:ResolveColorBlue |M:"+((r.shot_type||"-")+" - "+(r.scene||"")).replace(/[|\n]/g," ").slice(0,120)+" |D:1\n\n";
+  });
+  dl("footage-guide-markers.edl",new Blob([o],{type:"text/plain"}));
+}
+try{$("mpx").value=localStorage.getItem("sb_master")||MASTER;$("pxkey").value=localStorage.getItem("sb_px")||"";$("wps").value=localStorage.getItem("sb_wps")||"2.6"}catch(e){$("mpx").value=MASTER}
+$("mpx").oninput=()=>{try{$("mpx").value===MASTER?localStorage.removeItem("sb_master"):localStorage.setItem("sb_master",$("mpx").value)}catch(e){}};
+$("mreset").onclick=()=>{$("mpx").value=MASTER;$("mpx").oninput()};
+$("pxkey").oninput=()=>{try{localStorage.setItem("sb_px",$("pxkey").value)}catch(e){}};
+$("wps").oninput=()=>{try{localStorage.setItem("sb_wps",$("wps").value)}catch(e){}};
+$("hexp").onclick=()=>dl("footage-guide-riwayat.json",new Blob([JSON.stringify(loadHist(),null,2)],{type:"application/json"}));
+$("himp").onclick=()=>$("hfile").click();
+$("hfile").onchange=async()=>{
+  const f=$("hfile").files[0];if(!f)return;
+  try{const a=JSON.parse(await f.text());if(!Array.isArray(a))throw 0;const cur=loadHist(),ids=new Set(cur.map(x=>x.id));
+    a.filter(x=>x&&x.id&&Array.isArray(x.rows)&&!ids.has(x.id)).forEach(x=>cur.push(x));cur.sort((p,q)=>q.t-p.t);cur.splice(30);storeHist(cur);renderHist();
+    $("status").className="status";$("status").textContent="Riwayat diimpor."}
+  catch(e){$("status").className="status err";$("status").textContent="File riwayat tidak valid."}
+  $("hfile").value="";
+};
+$("edl").onclick=edl;$("audit").onclick=audit;
 renderHist();
 $("run").onclick=run;$("xlsx").onclick=xlsx;
 $("csv").onclick=()=>{const q=v=>'"'+String(v||"").replace(/"/g,'""')+'"';dl("footage-guide.csv",new Blob(["\ufeff"+[COL5.map(c=>q(c[1])).concat(q("LINKS"),q("DONE")).join(","),...rows.map(r=>COL5.map(c=>q(r[c[0]])).concat(q(srcLinks(r).map(x=>x[1]).join(" | ")),q(r.done?"YES":"")).join(","))].join("\n")],{type:"text/csv;charset=utf-8"}))};
-$("json").onclick=()=>dl("footage-guide.json",new Blob([JSON.stringify(rows.map(r=>{const o={};COL5.forEach(c=>o[c[0]]=r[c[0]]);o.links=srcLinks(r).map(([label,url])=>({label,url}));o.done=!!r.done;return o}),null,2)],{type:"application/json"}));
+$("json").onclick=()=>dl("footage-guide.json",new Blob([JSON.stringify(rows.map(r=>{const o={};COL5.forEach(c=>o[c[0]]=r[c[0]]);o.links=srcLinks(r).map(([label,url])=>({label,url}));o.done=!!r.done;o.note=r.note||"";o.score=r.score||0;o.tip=r.tip||"";o.verified=!!r.vf;o.envato_url=r.envato_url||"";return o}),null,2)],{type:"application/json"}));
 </script>
 </body>
 </html>
