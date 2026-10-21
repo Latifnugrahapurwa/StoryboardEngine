@@ -60,7 +60,7 @@ table.gt{border-collapse:collapse;table-layout:fixed;min-width:1180px;width:100%
 .gt td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:top}
 .cell{white-space:pre-wrap;min-height:1.4em;outline:none}.cell:focus{background:var(--bg)}
 .flag{margin-top:4px;color:var(--red);font-size:12px;font-weight:600}
-.chk{display:grid;gap:4px}.opt{font-weight:400;display:flex;align-items:center;gap:6px;margin:0}.opt input{width:auto}.rm{padding:0 7px;border-color:var(--line);color:var(--mute)}
+.chk{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}.opt{font-weight:400;display:flex;align-items:center;gap:8px;margin:0;min-width:0}.opt input{width:auto;flex:none}.opt span{flex:1;min-width:0;overflow-wrap:anywhere}.rm{flex:none;margin-left:auto;padding:0 9px;font-size:16px;line-height:1.4;border-color:var(--red);color:var(--red)}
 .lk{display:block;margin-bottom:4px;padding:3px 8px;border:1px solid var(--ink);border-radius:5px;color:var(--ink);text-decoration:none;font-weight:600;font-size:12px;white-space:nowrap}.lk:hover{background:var(--acc);color:var(--acc-ink)}
 .hi{border-top:1px solid var(--line);padding:8px 0;display:grid;gap:4px}.hi b{font-size:14px;overflow-wrap:anywhere}.hi small{color:var(--mute)}.hi .acts{display:flex;gap:6px}.hi .acts button{padding:3px 12px;font-size:13px}.hi .del{border-color:var(--red);color:var(--red)}
 .gt th:nth-child(1){width:4%}.gt th:nth-child(2){width:16%}.gt th:nth-child(3){width:9%}.gt th:nth-child(4){width:15%}.gt th:nth-child(5){width:28%}.gt th:nth-child(6){width:28%}
@@ -278,8 +278,8 @@ function renderSrc(){
   SRC.forEach(name=>{
     const l=h("label","opt"),c=document.createElement("input");c.type="checkbox";c.checked=SEL.includes(name);
     c.onchange=()=>{SEL=c.checked?SEL.concat(name):SEL.filter(x=>x!==name);saveSrc()};
-    l.append(c,document.createTextNode(" "+name));
-    if(!SRC0.includes(name)){const x=h("button","rm","×");x.type="button";x.title="Hapus sumber";x.onclick=e=>{e.preventDefault();SRC=SRC.filter(y=>y!==name);SEL=SEL.filter(y=>y!==name);saveSrc();renderSrc()};l.append(x)}
+    const sp=h("span",null,name);sp.title=name;l.append(c,sp);
+    if(!SRC0.includes(name)){const x=h("button","rm","×");x.type="button";x.title="Hapus sumber";x.setAttribute("aria-label","Hapus sumber "+name);x.onclick=e=>{e.preventDefault();SRC=SRC.filter(y=>y!==name);SEL=SEL.filter(y=>y!==name);saveSrc();renderSrc()};l.append(x)}
     box.append(l);
   });
 }
