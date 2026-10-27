@@ -157,7 +157,6 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
   <div><label for="vmode">Mode visual</label><select id="vmode"><option>TALKING HEAD + B-ROLL</option><option>TALKING HEAD</option><option>AUDIO ONLY</option></select></div></div>
   <div class="field"><label for="topic">Subjek utama</label><input id="topic" placeholder="Contoh: NordVPN vs ExpressVPN"></div>
   <div class="field"><label for="aiplat">Platform video AI</label><select id="aiplat"><option>Google Flow</option><option>Gemini Video Generator</option><option>Platform lain</option></select></div>
-  <div class="field"><label for="trsel">Terjemahkan VO ke (opsional)</label><select id="trsel" data-k="trLang"><option value="">Tidak diterjemahkan</option><option value="id">Indonesia</option><option value="en">Inggris</option><option value="es">Spanyol</option><option value="fr">Prancis</option><option value="de">Jerman</option><option value="pt">Portugis</option><option value="ja">Jepang</option><option value="ko">Korea</option><option value="zh">Mandarin</option><option value="ar">Arab</option></select><p class="status">Terjemahan tampil di bawah VO asli. Kolom VO tetap persis skrip.</p></div>
  </div>
  <div class="card">
   <h3>Sumber footage (opsional)</h3>
@@ -215,7 +214,7 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
     <div class="sf"><label for="s-radius">Sudut elemen</label><select id="s-radius" data-k="radius"><option value="sharp">Tajam</option><option value="medium">Sedang</option><option value="round">Bulat</option></select></div>
    </div>
    <div class="grp"><h4>Efek</h4>
-    <label class="tg"><span>Animasi &amp; transisi</span><input type="checkbox" data-k="anim"></label><label class="tg"><span>Latar imersif (cahaya bergerak)</span><input type="checkbox" data-k="glow"></label><label class="tg"><span>Tabel setinggi layar (gulir di dalam tabel)</span><input type="checkbox" data-k="fill"></label><label class="tg"><span>Tampilkan terjemahan VO di tabel</span><input type="checkbox" data-k="trShow"></label>
+    <label class="tg"><span>Animasi &amp; transisi</span><input type="checkbox" data-k="anim"></label><label class="tg"><span>Latar imersif (cahaya bergerak)</span><input type="checkbox" data-k="glow"></label><label class="tg"><span>Tabel setinggi layar (gulir di dalam tabel)</span><input type="checkbox" data-k="fill"></label>
    </div>
    <div class="grp"><h4>Kolom tabel yang ditampilkan</h4>
     <label class="tg"><span>Shot type</span><input type="checkbox" data-k="c3"></label><label class="tg"><span>Scene / show this</span><input type="checkbox" data-k="c4"></label><label class="tg"><span>How to get it / exact source</span><input type="checkbox" data-k="c5"></label><label class="tg"><span>Exact AI prompt</span><input type="checkbox" data-k="c6"></label>
@@ -240,6 +239,11 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
     <div class="sf"><label for="s-delay">Jeda antar bagian (detik)</label><input id="s-delay" type="number" data-k="delay" min="0" max="120" step="1" placeholder="0"><small>Naikkan jika kena batas per menit di paket gratis.</small></div>
     <div class="sf"><label for="s-lang">Bahasa scene &amp; how-to</label><select id="s-lang" data-k="lang"><option value="auto">Sama dengan skrip</option><option value="id">Indonesia</option><option value="en">Inggris</option></select></div>
     <div class="sf"><label for="s-envMin">Target Envato minimum (%)</label><input id="s-envMin" type="number" data-k="envMin" min="0" max="100" step="1" placeholder="5"></div><div class="sf"><label for="s-envMax">Target Envato maksimum (%)</label><input id="s-envMax" type="number" data-k="envMax" min="0" max="100" step="1" placeholder="15"></div>
+   </div>
+   <div class="grp"><h4>Terjemahan</h4>
+    <div class="sf"><label for="s-trLang">Bahasa tujuan terjemahan</label><select id="s-trLang" data-k="trLang"><option value="id">Indonesia</option><option value="en">Inggris</option><option value="es">Spanyol</option><option value="fr">Prancis</option><option value="de">Jerman</option><option value="pt">Portugis</option><option value="ja">Jepang</option><option value="ko">Korea</option><option value="zh">Mandarin</option><option value="ar">Arab</option></select><small>Dipakai oleh tombol Terjemahkan di tiap baris dan oleh terjemahan otomatis.</small></div>
+    <div class="sf"><label class="tg"><span>Terjemahkan otomatis saat membuat guide (VO &amp; How to get it)</span><input type="checkbox" data-k="trAuto"></label><small>Menambah sekitar 15–30% token. Tanpa ini, gunakan tombol Terjemahkan per baris.</small></div>
+    <div class="sf"><label class="tg"><span>Tampilkan terjemahan di tabel</span><input type="checkbox" data-k="trShow"></label><small>URL, teks PUT TEXT, dan prompt AI tidak diterjemahkan. Kolom VO tetap persis skrip.</small></div>
    </div>
    <div class="grp"><h4>Master prompt</h4>
     <div class="sf" style="grid-column:1/-1"><label for="mpsel">Preset master prompt</label>
@@ -271,9 +275,11 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
 let rows=[];
 
 let seen=0,busy=false,curTab="look";
-const DEF={theme:"system",accent:"#f0b81f",ui:15,fs:14,density:"normal",side:360,radius:"medium",anim:true,glow:true,fill:true,c3:true,c4:true,c5:true,c6:true,temp:"",maxTok:"",chunk:1800,retry:2,delay:0,lang:"auto",envMin:5,envMax:15,hmax:30,trLang:"",trShow:true};
+const TRN={id:"Indonesia",en:"Inggris",es:"Spanyol",fr:"Prancis",de:"Jerman",pt:"Portugis",ja:"Jepang",ko:"Korea",zh:"Mandarin",ar:"Arab"};
+function trName(){return TRN[S.trLang||"id"]||S.trLang}
+const DEF={theme:"system",accent:"#f0b81f",ui:15,fs:14,density:"normal",side:360,radius:"medium",anim:true,glow:true,fill:true,c3:true,c4:true,c5:true,c6:true,temp:"",maxTok:"",chunk:1800,retry:2,delay:0,lang:"auto",envMin:5,envMax:15,hmax:30,trLang:"id",trAuto:false,trShow:true};
 let S=Object.assign({},DEF);
-try{Object.assign(S,JSON.parse(localStorage.getItem("sb_settings_v1")||"{}"))}catch(e){}
+try{const sv=JSON.parse(localStorage.getItem("sb_settings_v1")||"{}");Object.assign(S,sv);if(!("trAuto" in sv)&&sv.trLang)S.trAuto=true}catch(e){}
 const mq=matchMedia("(prefers-color-scheme: dark)"),SYNC=[];
 function inkFor(x){const n=parseInt(String(x).slice(1),16),r=n>>16,g=n>>8&255,b=n&255;return(0.299*r+0.587*g+0.114*b)>150?"#14161c":"#ffffff"}
 function mixHex(a,b,t){const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);return"#"+A.map((v,i)=>Math.round(v*(1-t)+B[i]*t).toString(16).padStart(2,"0")).join("")}
@@ -548,8 +554,8 @@ function ovr(){
   if($("prov").value==="manual")o+="\n- Bungkus jawaban akhir dalam SATU blok kode ```json berisi array saja.";
   if(S.lang!=="auto")o=o.replace("dalam bahasa yang sama dengan skrip","dalam bahasa "+(S.lang==="id"?"Indonesia":"Inggris"));
   o+="\n- Target persentase ENVATO B-ROLL untuk seluruh video: "+S.envMin+"-"+S.envMax+"%.";
-  if(S.trLang){const T={id:"Indonesia",en:"Inggris",es:"Spanyol",fr:"Prancis",de:"Jerman",pt:"Portugis",ja:"Jepang",ko:"Korea",zh:"Mandarin",ar:"Arab"}[S.trLang]||S.trLang;
-    o+="\n- TERJEMAHAN VO: tambahkan field \"vo_tr\" pada setiap objek berisi terjemahan natural dari VO ke bahasa "+T+". Field \"vo\" TETAP kutipan skrip asli persis, jangan diubah. Jangan menerjemahkan URL, nama produk/merek, dan teks setelah PUT TEXT. Jika VO sudah berbahasa "+T+", isi vo_tr dengan string kosong.";}
+  if(S.trAuto){const T=trName();
+    o+="\n- TERJEMAHAN: tambahkan field \"vo_tr\" (terjemahan natural VO) dan \"how_tr\" (terjemahan how_to_get) pada setiap objek, ke bahasa "+T+". Field \"vo\" TETAP kutipan skrip asli persis dan field \"how_to_get\" tetap versi aslinya. Pada vo_tr dan how_tr, pertahankan PERSIS: semua URL, seluruh teks setelah \"PUT TEXT :\", serta nama menu, tombol, fitur, dan merek seperti di antarmuka aslinya. ai_prompt tidak diterjemahkan. Jika teks sudah berbahasa "+T+", isi field terjemahannya dengan string kosong.";}
   return o;
 }
 function buildPrompt(c,i,n){
@@ -564,6 +570,7 @@ function check(r,n){
   if(/AI VIDEO/i.test(r.shot_type)&&!r.ai_prompt.trim())f.push("Baris AI tanpa prompt");
   if(/ENVATO/i.test(r.shot_type)&&!r.envato_url&&!/envato\.com\/\S+/i.test(r.how_to_get))f.push("Isi URL item Envato");
   if(/SCREEN RECORD/i.test(r.shot_type)&&/BELUM TERVERIFIKASI/i.test(r.how_to_get))f.push("Verifikasi URL sumber");
+  if(r.how_tr){const u=(r.how_to_get.match(/https?:\/\/[^\s)"'<>]+/g)||[]).some(x=>!r.how_tr.includes(x)),p=(r.how_to_get.match(/PUT TEXT\s*:[^\n]*/gi)||[]).some(l=>!r.how_tr.includes(l.trim()));if(u||p)f.push("Terjemahan how-to: URL/PUT TEXT tidak identik dengan aslinya")}
   return f;
 }
 function mix(){const m={};rows.forEach(r=>{const k=(r.shot_type||"-").toUpperCase();m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
@@ -620,10 +627,12 @@ function render(){
         if(r.score)td.append(h("div","sc"+(r.score<=2?" bad":""),"Skor "+r.score+"/5"+(r.tip?" — "+r.tip:"")));
         const nt=document.createElement("input");nt.className="note";nt.placeholder="Catatan editor";nt.value=r.note||"";nt.oninput=()=>{r.note=nt.value;persist()};td.append(nt);
         const rg=h("button","rg","↻ Buat ulang baris");rg.type="button";rg.onclick=()=>regen(r);
-        const tl=h("a","lk","Terjemahkan ↗");tl.href="https://translate.google.com/?sl=auto&tl="+(S.trLang==="zh"?"zh-CN":(S.trLang||"id"))+"&text="+encodeURIComponent(r.vo)+"&op=translate";tl.target="_blank";tl.rel="noopener noreferrer";tl.title="Buka Google Translate untuk VO baris ini";
+        const tl=h("button","rg",(r.vo_tr||r.how_tr)?"Terjemahkan ulang":"Terjemahkan");tl.type="button";tl.title="Terjemahkan VO dan How to get it ke "+trName()+" (bahasa tujuan diatur di Pengaturan)";
+        tl.onclick=async()=>{tl.disabled=true;tl.textContent="Menerjemahkan…";await translateRow(r);tl.disabled=false;tl.textContent="Terjemahkan ulang"};
         const va=h("div","vact");va.append(rg,tl);td.append(va);
       }
       if(k==="how_to_get"){
+        if(r.how_tr&&S.trShow){const tr=h("div","tr",r.how_tr);tr.contentEditable="true";tr.spellcheck=false;tr.title="Terjemahan How to get it (bisa diedit)";tr.oninput=()=>{r.how_tr=tr.innerText;persist()};td.append(tr)}
         const lb=h("div","links"),fill=()=>{lb.replaceChildren();srcLinks(r).forEach(([tx,u])=>{const a=h("a","lk",tx);a.href=u;a.target="_blank";a.rel="noopener noreferrer";lb.append(a)})};
         if(/ENVATO/i.test(r.shot_type)){const eu=document.createElement("input");eu.className="note";eu.placeholder="Tempel URL item Envato yang dipilih";eu.value=r.envato_url||"";eu.oninput=()=>{r.envato_url=eu.value.trim();fill();persist()};td.append(eu)}
         fill();td.append(lb);d.addEventListener("input",fill);
@@ -638,7 +647,7 @@ function render(){
 }
 function ingest(res,c,i,warn){
   const arr=Array.isArray(res)?res:(res&&res.rows)||[],n=nz(c);let cov=0;
-  arr.forEach(x=>{const r={};COL5.forEach(([k])=>r[k]=String(x[k]==null?"":x[k]));r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];r.done=false;r.flags=check(r,n);cov+=nz(r.vo).length;rows.push(r)});
+  arr.forEach(x=>{const r={};COL5.forEach(([k])=>r[k]=String(x[k]==null?"":x[k]));r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");r.how_tr=String(x.how_tr||"");r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];r.done=false;r.flags=check(r,n);cov+=nz(r.vo).length;rows.push(r)});
   if(cov<n.length*0.9)warn.push("bagian "+(i+1)+" baru mencakup "+Math.round(cov/Math.max(n.length,1)*100)+"% skrip");
 }
 function finishMsg(warn){
@@ -662,7 +671,7 @@ function manApply(){
   if(!man)return;const st=$("status");
   try{
     const res=parseJ($("mpaste").value);
-    if(man.one){const o=man.one;man=null;$("manual").hidden=true;o.apply(res);st.className="status";st.textContent=o.title+": selesai.";return}
+    if(man.one){const o=man.one;man=null;$("manual").hidden=true;const m=o.apply(res);st.className="status";st.textContent=typeof m==="string"?m:o.title+": selesai.";return}
     ingest(res,man.cs[man.i],man.i,man.warn);render();man.i++;
     if(man.i<man.cs.length){manShow();st.className="status";st.textContent="Bagian "+man.i+" masuk. Lanjut ke bagian "+(man.i+1)+" dari "+man.cs.length+"."}
     else{const w=man.warn;man=null;$("manual").hidden=true;finishMsg(w);saveEntry()}
@@ -682,7 +691,7 @@ async function run(){
       $("pbar").style.width=(i/cs.length*100)+"%";st.textContent="Menyusun bagian "+(i+1)+" dari "+cs.length+"...";
       const res=await callRetry(buildPrompt(cs[i],i,cs.length));
       const arr=Array.isArray(res)?res:(res&&res.rows)||[],n=nz(cs[i]);let cov=0;
-      arr.forEach(x=>{const r={};COL5.forEach(([k])=>r[k]=String(x[k]==null?"":x[k]));r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];r.done=false;r.flags=check(r,n);cov+=nz(r.vo).length;rows.push(r)});
+      arr.forEach(x=>{const r={};COL5.forEach(([k])=>r[k]=String(x[k]==null?"":x[k]));r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");r.how_tr=String(x.how_tr||"");r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];r.done=false;r.flags=check(r,n);cov+=nz(r.vo).length;rows.push(r)});
       if(cov<n.length*0.9)warn.push("bagian "+(i+1)+" baru mencakup "+Math.round(cov/n.length*100)+"% skrip");
       render();
     }
@@ -699,9 +708,9 @@ function dl(name,blob){const u=URL.createObjectURL(blob),a=document.createElemen
 async function xlsx(){
   if(!window.ExcelJS){$("status").className="status err";$("status").textContent="Pustaka Excel gagal dimuat. Cek koneksi atau pakai CSV.";return}
   const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("FOOTAGE GUIDE",{views:[{state:"frozen",ySplit:1}]});
-  ws.columns=COL5.map(c=>({header:c[1],key:c[0],width:c[2]})).concat([{header:"LINK 1",key:"l1",width:16},{header:"LINK 2",key:"l2",width:16},{header:"LINK 3",key:"l3",width:16},{header:"DONE",key:"done",width:8},{header:"NOTE",key:"note",width:30}].concat(rows.some(x=>x.vo_tr)?[{header:"VO TRANSLATION",key:"vo_tr",width:46}]:[]));
-  rows.forEach(r=>{const L=srcLinks(r).slice(0,3),row=ws.addRow(COL5.map(c=>r[c[0]]).concat([0,1,2].map(i=>L[i]?{text:L[i][0],hyperlink:L[i][1]}:""),[r.done?"✓":"",r.note||""].concat(rows.some(x=>x.vo_tr)?[r.vo_tr||""]:[])));[6,7,8].forEach((c,i)=>{if(L[i])row.getCell(c).font={color:{argb:"FF0563C1"},underline:true}})});
-  ws.autoFilter="A1:"+(rows.some(x=>x.vo_tr)?"K":"J")+"1";
+  ws.columns=COL5.map(c=>({header:c[1],key:c[0],width:c[2]})).concat([{header:"LINK 1",key:"l1",width:16},{header:"LINK 2",key:"l2",width:16},{header:"LINK 3",key:"l3",width:16},{header:"DONE",key:"done",width:8},{header:"NOTE",key:"note",width:30}].concat(rows.some(x=>x.vo_tr)?[{header:"VO TRANSLATION",key:"vo_tr",width:46}]:[],rows.some(x=>x.how_tr)?[{header:"HOW TO GET TRANSLATION",key:"how_tr",width:60}]:[]));
+  rows.forEach(r=>{const L=srcLinks(r).slice(0,3),row=ws.addRow(COL5.map(c=>r[c[0]]).concat([0,1,2].map(i=>L[i]?{text:L[i][0],hyperlink:L[i][1]}:""),[r.done?"✓":"",r.note||""].concat(rows.some(x=>x.vo_tr)?[r.vo_tr||""]:[],rows.some(x=>x.how_tr)?[r.how_tr||""]:[])));[6,7,8].forEach((c,i)=>{if(L[i])row.getCell(c).font={color:{argb:"FF0563C1"},underline:true}})});
+  ws.autoFilter="A1:"+String.fromCharCode(74+(rows.some(x=>x.vo_tr)?1:0)+(rows.some(x=>x.how_tr)?1:0))+"1";
   ws.eachRow((row,i)=>row.eachCell(c=>{c.alignment={wrapText:true,vertical:"top"};if(i===1){c.font={bold:true};c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE5E7EB"}}}}));
   const s2=wb.addWorksheet("SHOT MIX SUMMARY");s2.columns=[{header:"SHOT TYPE",width:40},{header:"NUMBER OF SCENES",width:20},{header:"APPROXIMATE %",width:18}];
   mix().forEach(([k,v])=>s2.addRow([k,v,Math.round(v/rows.length*100)+"%"]));s2.getRow(1).font={bold:true};
@@ -783,8 +792,18 @@ async function ask(title,prompt,apply){
   const st=$("status");st.className="status";
   if($("prov").value==="manual"){man={cs:[""],i:0,warn:[],one:{title,prompt,apply}};manShow();st.textContent="Ikuti langkah di kartu di atas tabel.";return}
   st.textContent=title+"...";
-  try{apply(await callRetry(prompt));st.textContent=title+": selesai."}
+  try{const m=apply(await callRetry(prompt));st.textContent=typeof m==="string"?m:title+": selesai."}
   catch(e){st.className="status err";st.textContent="Gagal"+(e&&e.code?" ("+e.code+")":"")+": "+((e&&e.message)||"coba lagi")}
+}
+function translateRow(r){
+  const T=trName(),i=rows.indexOf(r);
+  const p="Terjemahkan dua teks berikut ke bahasa "+T+". Balas HANYA array JSON berisi satu objek: [{\"vo_tr\":\"...\",\"how_tr\":\"...\"}].\nAturan: (1) vo_tr = terjemahan natural dari VO. (2) how_tr = terjemahan dari HOW TO GET. (3) Pertahankan PERSIS dan jangan diterjemahkan: semua URL, seluruh teks setelah \"PUT TEXT :\" (beserta labelnya), serta nama menu, tombol, fitur, dan merek persis seperti di antarmuka aslinya. (4) Pertahankan susunan baris dan penomoran. (5) Jika suatu teks sudah berbahasa "+T+", kembalikan string kosong untuk field itu.\n\nVO:\n"+r.vo+"\n\nHOW TO GET:\n"+r.how_to_get;
+  return ask("Menerjemahkan baris "+(i+1)+" ke "+T,p,res=>{
+    const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
+    r.vo_tr=String(x.vo_tr||"");r.how_tr=String(x.how_tr||"");render();persist();
+    if(!r.vo_tr&&!r.how_tr)return "Teks baris "+(i+1)+" sudah berbahasa "+T+", tidak ada yang diterjemahkan.";
+    if(r.flags&&r.flags.some(f=>f.indexOf("Terjemahan how-to")===0))return "Baris "+(i+1)+" diterjemahkan, tetapi URL atau teks PUT TEXT tidak identik dengan aslinya. Periksa tanda merah.";
+  });
 }
 function regen(r){
   const i=rows.indexOf(r),pv=rows[i-1],nx=rows[i+1];
@@ -792,7 +811,7 @@ function regen(r){
   ask("Membuat ulang baris "+(i+1),p,res=>{
     const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
     COL5.forEach(([k])=>{if(k!=="vo")r[k]=String(x[k]==null?"":x[k])});
-    r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");
+    r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");r.how_tr=String(x.how_tr||"");
     r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];
     r.score=0;r.tip="";r.envato_url="";r.vf=false;render();persist();
   });
@@ -899,8 +918,8 @@ $("hfile").onchange=async()=>{
 $("edl").onclick=edl;$("audit").onclick=audit;sc();
 renderHist();
 $("run").onclick=run;$("xlsx").onclick=xlsx;
-$("csv").onclick=()=>{const q=v=>'"'+String(v||"").replace(/"/g,'""')+'"';dl("footage-guide.csv",new Blob(["\ufeff"+[COL5.map(c=>q(c[1])).concat(q("LINKS"),q("DONE"),q("VO TRANSLATION")).join(","),...rows.map(r=>COL5.map(c=>q(r[c[0]])).concat(q(srcLinks(r).map(x=>x[1]).join(" | ")),q(r.done?"YES":""),q(r.vo_tr||"")).join(","))].join("\n")],{type:"text/csv;charset=utf-8"}))};
-$("json").onclick=()=>dl("footage-guide.json",new Blob([JSON.stringify(rows.map(r=>{const o={};COL5.forEach(c=>o[c[0]]=r[c[0]]);o.links=srcLinks(r).map(([label,url])=>({label,url}));o.done=!!r.done;o.vo_tr=r.vo_tr||"";o.note=r.note||"";o.score=r.score||0;o.tip=r.tip||"";o.verified=!!r.vf;o.envato_url=r.envato_url||"";return o}),null,2)],{type:"application/json"}));
+$("csv").onclick=()=>{const q=v=>'"'+String(v||"").replace(/"/g,'""')+'"';dl("footage-guide.csv",new Blob(["\ufeff"+[COL5.map(c=>q(c[1])).concat(q("LINKS"),q("DONE"),q("VO TRANSLATION"),q("HOW TRANSLATION")).join(","),...rows.map(r=>COL5.map(c=>q(r[c[0]])).concat(q(srcLinks(r).map(x=>x[1]).join(" | ")),q(r.done?"YES":""),q(r.vo_tr||""),q(r.how_tr||"")).join(","))].join("\n")],{type:"text/csv;charset=utf-8"}))};
+$("json").onclick=()=>dl("footage-guide.json",new Blob([JSON.stringify(rows.map(r=>{const o={};COL5.forEach(c=>o[c[0]]=r[c[0]]);o.links=srcLinks(r).map(([label,url])=>({label,url}));o.done=!!r.done;o.vo_tr=r.vo_tr||"";o.how_tr=r.how_tr||"";o.note=r.note||"";o.score=r.score||0;o.tip=r.tip||"";o.verified=!!r.vf;o.envato_url=r.envato_url||"";return o}),null,2)],{type:"application/json"}));
 </script>
 </body>
 </html>
