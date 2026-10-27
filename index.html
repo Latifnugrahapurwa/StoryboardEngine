@@ -129,6 +129,7 @@ input[type=color]{width:34px;height:30px;padding:0;border:1px solid var(--line);
 .vact{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}.vact .rg{margin-top:0}.vact .lk{padding:2px 9px;font-size:.8em;color:var(--mute);border-radius:99px}
 .linkbtn{background:none;border:0;padding:3px 0 0;box-shadow:none;color:var(--mute);font-size:.82em;font-weight:500;text-decoration:underline;cursor:pointer;text-align:left}
 .linkbtn:hover{transform:none;box-shadow:none;border:0;color:var(--ink)}
+.bar button{padding:5px 12px;font-size:.85em}
 html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid transparent;background-clip:content-box}
@@ -618,7 +619,10 @@ function render(){
   const bar=h("div","bar"),sel=document.createElement("select"),cnt=h("span","dur","");cnt.id="cnt";
   [["all","Semua baris"],["todo","Belum diterapkan"],["done","Sudah diterapkan"]].forEach(([v,l])=>{const o=h("option",null,l);o.value=v;sel.append(o)});
   sel.value=flt;sel.setAttribute("aria-label","Filter status penerapan");sel.onchange=()=>{flt=sel.value;render()};
-  bar.append(sel,cnt,h("span","dur",insights()));out.append(bar);
+  const pn=pendingTr().length,trb=h("button",null,"Terjemahkan yang belum ("+pn+")");trb.type="button";trb.disabled=!pn;
+  trb.title="Terjemahkan VO ke "+trName()+" untuk baris yang belum punya terjemahan"+(S.trAuto?"":" (termasuk Scene dan How to get it)");
+  trb.onclick=()=>{const t=pendingTr();if(t.length)bulkTranslate(t,!S.trAuto)};
+  bar.append(sel,cnt,h("span","dur",insights()),trb);out.append(bar);
   const t=h("table","gt"),hd=h("thead"),hr=h("tr"),th0=h("th",null,"✓");th0.title="Sudah diterapkan di video";hr.append(th0);
   COL5.forEach(c=>hr.append(h("th",null,c[1])));hd.append(hr);t.append(hd);
   const tb=h("tbody");let shown=0;
@@ -710,7 +714,7 @@ async function run(){
     st.className="status err";st.textContent="Gagal"+(e&&e.code?" ("+e.code+")":"")+": "+((e&&e.message)||"coba lagi")+(rows.length?". Hasil sebagian tetap ditampilkan.":"");
   }
   if(rows.length)saveEntry();
-  busy=false;if(!rows.length)render();$("pbar").style.width="100%";setTimeout(()=>{$("pbar").style.width="0"},700);
+  busy=false;if(!rows.length)render();autoFill();$("pbar").style.width="100%";setTimeout(()=>{$("pbar").style.width="0"},700);
   $("run").disabled=false;
 }
 function dl(name,blob){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
@@ -799,22 +803,54 @@ async function callRetry(p){
 }
 async function ask(title,prompt,apply){
   const st=$("status");st.className="status";
-  if($("prov").value==="manual"){man={cs:[""],i:0,warn:[],one:{title,prompt,apply}};manShow();st.textContent="Ikuti langkah di kartu di atas tabel.";return}
+  if($("prov").value==="manual"){man={cs:[""],i:0,warn:[],one:{title,prompt,apply}};manShow();st.textContent="Ikuti langkah di kartu di atas tabel.";return "manual"}
   st.textContent=title+"...";
-  try{const m=apply(await callRetry(prompt));st.textContent=typeof m==="string"?m:title+": selesai."}
-  catch(e){st.className="status err";st.textContent="Gagal"+(e&&e.code?" ("+e.code+")":"")+": "+((e&&e.message)||"coba lagi")}
+  try{const m=apply(await callRetry(prompt));st.textContent=typeof m==="string"?m:title+": selesai.";return true}
+  catch(e){st.className="status err";st.textContent="Gagal"+(e&&e.code?" ("+e.code+")":"")+": "+((e&&e.message)||"coba lagi");return false}
 }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function restoreRow(r){if(r.how_orig===undefined)return;r.how_to_get=r.how_orig;if(r.scene_orig!=null)r.scene=r.scene_orig;delete r.how_orig;delete r.scene_orig;render();persist()}
+function applyTr(r,x,full){
+  const n2=t=>String(t).replace(/\s+/g," ").trim(),hs=r.how_orig!==undefined?r.how_orig:r.how_to_get,ss=r.scene_orig!==undefined?r.scene_orig:r.scene;
+  const nv=String(x.vo_tr||""),nh=full?String(x.how_to_get||"").trim():"",ns=full?String(x.scene||"").trim():"";
+  r.trChk=true;
+  const diff=full&&((nh&&n2(nh)!==n2(hs))||(ns&&n2(ns)!==n2(ss)));
+  if(!nv&&!diff)return "same";
+  if(diff&&r.how_orig===undefined){r.how_orig=r.how_to_get;r.scene_orig=r.scene}
+  r.vo_tr=nv;if(diff){if(nh)r.how_to_get=nh;if(ns)r.scene=ns}
+  return "ok";
+}
+function bulkPrompt(b,full,T){
+  const items=b.map(r=>{const i=rows.indexOf(r)+1,hs=r.how_orig!==undefined?r.how_orig:r.how_to_get,ss=r.scene_orig!==undefined?r.scene_orig:r.scene;return "n="+i+"\nVO: "+r.vo+(full?"\nSCENE: "+ss+"\nHOW TO GET: "+hs:"")}).join("\n---\n");
+  return "Terjemahkan ke bahasa "+T+". Balas HANYA array JSON berisi SATU objek untuk SETIAP baris di bawah (jangan ada yang terlewat), urutan sama: [{\"n\":1,\"vo_tr\":\"...\""+(full?",\"scene\":\"...\",\"how_to_get\":\"...\"":"")+"}].\nAturan: (1) vo_tr = terjemahan natural dari VO. "+(full?"(2) scene dan how_to_get = terjemahan SCENE dan HOW TO GET, ditulis seluruhnya dalam bahasa "+T+" tanpa campuran bahasa lain. ":"")+"(3) Pertahankan PERSIS dan jangan diterjemahkan: semua URL, seluruh teks setelah \"PUT TEXT :\" (itu teks yang tampil di video, bahasanya mengikuti VO), serta nama menu, tombol, fitur, dan merek persis seperti di antarmuka aslinya. (4) Pertahankan susunan baris dan penomoran. (5) Jika VO sudah berbahasa "+T+", isi vo_tr dengan string kosong.\n\n"+items;
+}
+function bulkTranslate(targets,full){
+  const T=trName(),size=full?8:20,B=[],tot={ok:0,same:0,miss:0},isMan=$("prov").value==="manual";
+  for(let i=0;i<targets.length;i+=size)B.push(targets.slice(i,i+size));
+  const msg=()=>"Terjemahan selesai: "+tot.ok+" baris diterjemahkan"+(tot.same?", "+tot.same+" sudah berbahasa "+T:"")+(tot.miss?", "+tot.miss+" tidak dijawab AI (tekan tombol lagi)":"")+".";
+  const one=k=>{
+    const b=B[k],last=k===B.length-1;
+    return ask("Menerjemahkan batch "+(k+1)+" dari "+B.length+" ke "+T,bulkPrompt(b,full,T),res=>{
+      const arr=Array.isArray(res)?res:[];
+      b.forEach((r,j)=>{const x=arr.find(y=>(y.n|0)===rows.indexOf(r)+1)||arr[j];if(!x){tot.miss++;return}applyTr(r,x,full)==="ok"?tot.ok++:tot.same++});
+      render();persist();
+      if(isMan&&!last)setTimeout(()=>one(k+1),0);
+      return last?msg():"Batch "+(k+1)+" dari "+B.length+" selesai.";
+    });
+  };
+  (async()=>{
+    if(isMan){await one(0);return}
+    for(let k=0;k<B.length;k++){if(k>0&&(+S.delay||0)>0)await sleep(S.delay*1000);if(await one(k)===false)break}
+  })();
+}
+function pendingTr(){return rows.filter(r=>!r.vo_tr&&!r.trChk)}
+function autoFill(){if(!S.trAuto||$("prov").value==="manual")return;const t=pendingTr();if(t.length)bulkTranslate(t,false)}
 function translateRow(r){
-  const T=trName(),i=rows.indexOf(r),hs=r.how_orig!==undefined?r.how_orig:r.how_to_get,ss=r.scene_orig!==undefined?r.scene_orig:r.scene;
-  const p="Terjemahkan tiga teks berikut ke bahasa "+T+". Balas HANYA array JSON berisi satu objek: [{\"vo_tr\":\"...\",\"scene\":\"...\",\"how_to_get\":\"...\"}].\nAturan: (1) vo_tr = terjemahan natural dari VO. (2) scene dan how_to_get = terjemahan dari SCENE dan HOW TO GET, ditulis seluruhnya dalam bahasa "+T+" tanpa campuran bahasa lain. (3) Pertahankan PERSIS dan jangan diterjemahkan: semua URL, seluruh teks setelah \"PUT TEXT :\" (itu teks yang tampil di video, bahasanya mengikuti VO), serta nama menu, tombol, fitur, dan merek persis seperti di antarmuka aslinya. (4) Pertahankan susunan baris dan penomoran. (5) Jika VO sudah berbahasa "+T+", isi vo_tr dengan string kosong.\n\nVO:\n"+r.vo+"\n\nSCENE:\n"+ss+"\n\nHOW TO GET:\n"+hs;
-  return ask("Menerjemahkan baris "+(i+1)+" ke "+T,p,res=>{
+  const T=trName(),i=rows.indexOf(r);
+  return ask("Menerjemahkan baris "+(i+1)+" ke "+T,bulkPrompt([r],true,T),res=>{
     const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
-    const nh=String(x.how_to_get||"").trim(),ns=String(x.scene||"").trim(),nv=String(x.vo_tr||""),n2=t=>String(t).replace(/\s+/g," ").trim();
-    if(!nv&&n2(nh)===n2(hs)&&n2(ns)===n2(ss))return "Baris "+(i+1)+" sudah berbahasa "+T+", tidak ada yang diterjemahkan.";
-    if(r.how_orig===undefined){r.how_orig=r.how_to_get;r.scene_orig=r.scene}
-    r.vo_tr=nv;if(nh)r.how_to_get=nh;if(ns)r.scene=ns;
-    render();persist();
+    const o=applyTr(r,x,true);render();persist();
+    if(o==="same")return "Baris "+(i+1)+" sudah berbahasa "+T+", tidak ada yang diterjemahkan.";
     if(r.flags&&r.flags.some(f=>f.indexOf("Terjemahan how-to")===0))return "Baris "+(i+1)+" diterjemahkan, tetapi URL atau teks PUT TEXT tidak identik dengan aslinya. Periksa tanda merah.";
   });
 }
