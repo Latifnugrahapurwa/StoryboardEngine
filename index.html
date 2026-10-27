@@ -240,13 +240,13 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
     <div class="sf"><label for="s-chunk">Ukuran potongan skrip (karakter)</label><input id="s-chunk" type="number" data-k="chunk" min="400" max="6000" step="100" placeholder="1800"><small>Makin kecil = lebih teliti tapi lebih banyak panggilan.</small></div>
     <div class="sf"><label for="s-retry">Coba ulang otomatis (kali)</label><input id="s-retry" type="number" data-k="retry" min="0" max="5" step="1" placeholder="2"></div>
     <div class="sf"><label for="s-delay">Jeda antar bagian (detik)</label><input id="s-delay" type="number" data-k="delay" min="0" max="120" step="1" placeholder="0"><small>Naikkan jika kena batas per menit di paket gratis.</small></div>
-    <div class="sf"><label for="s-lang">Bahasa scene &amp; how-to</label><select id="s-lang" data-k="lang"><option value="auto">Sama dengan skrip</option><option value="id">Indonesia</option><option value="en">Inggris</option></select></div>
+    <div class="sf"><label for="s-lang">Bahasa scene &amp; how-to (diabaikan jika terjemahan otomatis aktif)</label><select id="s-lang" data-k="lang"><option value="auto">Sama dengan skrip</option><option value="id">Indonesia</option><option value="en">Inggris</option></select></div>
     <div class="sf"><label for="s-envMin">Target Envato minimum (%)</label><input id="s-envMin" type="number" data-k="envMin" min="0" max="100" step="1" placeholder="5"></div><div class="sf"><label for="s-envMax">Target Envato maksimum (%)</label><input id="s-envMax" type="number" data-k="envMax" min="0" max="100" step="1" placeholder="15"></div>
    </div>
    <div class="grp"><h4>Terjemahan</h4>
     <div class="sf"><label for="s-trLang">Bahasa tujuan terjemahan</label><select id="s-trLang" data-k="trLang"><option value="id">Indonesia</option><option value="en">Inggris</option><option value="es">Spanyol</option><option value="fr">Prancis</option><option value="de">Jerman</option><option value="pt">Portugis</option><option value="ja">Jepang</option><option value="ko">Korea</option><option value="zh">Mandarin</option><option value="ar">Arab</option></select><small>Dipakai oleh tombol Terjemahkan di tiap baris dan oleh terjemahan otomatis.</small></div>
-    <div class="sf"><label class="tg"><span>Terjemahkan otomatis saat membuat guide (VO &amp; How to get it)</span><input type="checkbox" data-k="trAuto"></label><small>Menambah sekitar 15–30% token. Tanpa ini, gunakan tombol Terjemahkan per baris.</small></div>
-    <div class="sf"><label class="tg"><span>Tampilkan terjemahan di tabel</span><input type="checkbox" data-k="trShow"></label><small>URL, teks PUT TEXT, dan prompt AI tidak diterjemahkan. Kolom VO tetap persis skrip.</small></div>
+    <div class="sf"><label class="tg"><span>Terjemahkan otomatis saat membuat guide</span><input type="checkbox" data-k="trAuto"></label><small>VO diterjemahkan dan tampil di bawah VO asli. Scene dan How to get it langsung ditulis dalam bahasa tujuan (satu bahasa, satu hasil). Tanpa ini, gunakan tombol Terjemahkan per baris.</small></div>
+    <div class="sf"><label class="tg"><span>Tampilkan terjemahan VO di tabel</span><input type="checkbox" data-k="trShow"></label><small>URL, teks PUT TEXT, dan prompt AI tidak diterjemahkan. Kolom VO tetap persis skrip.</small></div>
    </div>
    <div class="grp"><h4>Master prompt</h4>
     <div class="sf" style="grid-column:1/-1"><label for="mpsel">Preset master prompt</label>
@@ -554,14 +554,17 @@ $("srcnew").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("srcadd").onc
 function srcText(){return SEL.length?SEL.join(", ")+" (use ONLY these sources, except SCREEN RECORD — DEVICE / SOFTWARE for apps/devices the user owns; do not use any other source)":"Not specified (choose according to the master prompt rules)"}
 renderSrc();
 function searchOn(){const p=$("prov").value;return p==="manual"||(p==="gemini"&&gsOn())}
+function detLang(t){const w=String(t).toLowerCase().match(/[a-z']+/g)||[],en=new Set("the and you your that this with for are is of to in it we our on be can have from or if will".split(" ")),id=new Set("yang dan di ke dari untuk dengan ini itu adalah pada akan kami kita anda tidak juga atau dalam sebagai saya".split(" "));let a=0,b=0;w.forEach(x=>{if(en.has(x))a++;if(id.has(x))b++});return a>b*1.5?"en":b>a*1.5?"id":""}
 function ovr(){
   let o=OVERRIDE;
   if(searchOn())o=o.replace("Kamu tidak bisa browsing web dan tidak membuat Excel.","Kamu boleh menelusuri web untuk memverifikasi sumber, dan tidak membuat Excel.")+"\n- Karena kamu bisa menelusuri web: source_url dan extra_sources boleh berisi URL halaman spesifik, tetapi HANYA yang benar-benar sudah kamu temukan dan buka/verifikasi. Jika gagal diverifikasi, tetap tulis URL BELUM TERVERIFIKASI.";
   if($("prov").value==="manual")o+="\n- Bungkus jawaban akhir dalam SATU blok kode ```json berisi array saja.";
-  if(S.lang!=="auto")o=o.replace("dalam bahasa yang sama dengan skrip","dalam bahasa "+(S.lang==="id"?"Indonesia":"Inggris"));
+  const sl=detLang($("script").value),L=S.trAuto?trName():(S.lang==="id"?"Indonesia":S.lang==="en"?"Inggris":(sl==="en"?"Inggris":sl==="id"?"Indonesia":""));
+  if(L)o=o.replace("dalam bahasa yang sama dengan skrip","dalam bahasa "+L+" (wajib, jangan dicampur bahasa lain)");
   o+="\n- Target persentase ENVATO B-ROLL untuk seluruh video: "+S.envMin+"-"+S.envMax+"%.";
   if(S.trAuto){const T=trName();
-    o+="\n- TERJEMAHAN: tambahkan field \"vo_tr\" (terjemahan natural VO) dan \"how_tr\" (terjemahan how_to_get) pada setiap objek, ke bahasa "+T+". Field \"vo\" TETAP kutipan skrip asli persis dan field \"how_to_get\" tetap versi aslinya. Pada vo_tr dan how_tr, pertahankan PERSIS: semua URL, seluruh teks setelah \"PUT TEXT :\", serta nama menu, tombol, fitur, dan merek seperti di antarmuka aslinya. ai_prompt tidak diterjemahkan. Jika teks sudah berbahasa "+T+", isi field terjemahannya dengan string kosong.";}
+    o+="\n- TERJEMAHAN VO: tambahkan field \"vo_tr\" pada setiap objek berisi terjemahan natural VO ke bahasa "+T+". Field \"vo\" TETAP kutipan skrip asli persis. Jika VO sudah berbahasa "+T+", isi vo_tr dengan string kosong. Scene dan how_to_get langsung ditulis dalam bahasa "+T+" (satu bahasa, tanpa versi ganda); URL, nama menu/tombol/fitur/merek dipertahankan persis seperti di antarmuka aslinya.";}
+  o+="\n- Teks setelah \"PUT TEXT :\" adalah teks yang tampil di video, jadi tulis dalam bahasa yang sama dengan VO (bahasa video), apa pun bahasa penjelasan di kolom lain.";
   return o;
 }
 function buildPrompt(c,i,n){
@@ -576,7 +579,7 @@ function check(r,n){
   if(/AI VIDEO/i.test(r.shot_type)&&!r.ai_prompt.trim())f.push("Baris AI tanpa prompt");
   if(/ENVATO/i.test(r.shot_type)&&!r.envato_url&&!/envato\.com\/\S+/i.test(r.how_to_get))f.push("Isi URL item Envato");
   if(/SCREEN RECORD/i.test(r.shot_type)&&/BELUM TERVERIFIKASI/i.test(r.how_to_get))f.push("Verifikasi URL sumber");
-  if(r.how_tr){const u=(r.how_to_get.match(/https?:\/\/[^\s)"'<>]+/g)||[]).some(x=>!r.how_tr.includes(x)),p=(r.how_to_get.match(/PUT TEXT\s*:[^\n]*/gi)||[]).some(l=>!r.how_tr.includes(l.trim()));if(u||p)f.push("Terjemahan how-to: URL/PUT TEXT tidak identik dengan aslinya")}
+  if(r.how_orig!==undefined){const o=r.how_orig,u=(o.match(/https?:\/\/[^\s)"'<>]+/g)||[]).some(x=>!r.how_to_get.includes(x)),p=(o.match(/PUT TEXT\s*:[^\n]*/gi)||[]).some(l=>!r.how_to_get.includes(l.trim()));if(u||p)f.push("Terjemahan how-to: URL/PUT TEXT tidak identik dengan aslinya")}
   return f;
 }
 function mix(){const m={};rows.forEach(r=>{const k=(r.shot_type||"-").toUpperCase();m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
@@ -633,17 +636,17 @@ function render(){
         if(r.score)td.append(h("div","sc"+(r.score<=2?" bad":""),"Skor "+r.score+"/5"+(r.tip?" — "+r.tip:"")));
         const nt=document.createElement("input");nt.className="note";nt.placeholder="Catatan editor";nt.value=r.note||"";nt.oninput=()=>{r.note=nt.value;persist()};td.append(nt);
         const rg=h("button","rg","↻ Buat ulang baris");rg.type="button";rg.onclick=()=>regen(r);
-        const tl=h("button","rg",(r.vo_tr||r.how_tr)?"Terjemahkan ulang":"Terjemahkan");tl.type="button";tl.title="Terjemahkan VO dan How to get it ke "+trName()+" (bahasa tujuan diatur di Pengaturan)";
+        const tl=h("button","rg",(r.vo_tr||r.how_orig!==undefined)?"Terjemahkan ulang":"Terjemahkan");tl.type="button";tl.title="Terjemahan VO tampil di bawah VO asli; Scene dan How to get it diubah ke "+trName()+" (bahasa tujuan diatur di Pengaturan)";
         tl.onclick=async()=>{tl.disabled=true;tl.textContent="Menerjemahkan…";await translateRow(r);tl.disabled=false;tl.textContent="Terjemahkan ulang"};
         const va=h("div","vact");va.append(rg,tl);td.append(va);
       }
       if(k==="how_to_get"){
-        if(r.how_tr&&S.trShow){const tr=h("div","tr",r.how_tr);tr.contentEditable="true";tr.spellcheck=false;tr.title="Terjemahan How to get it (bisa diedit)";tr.oninput=()=>{r.how_tr=tr.innerText;persist()};td.append(tr)}
         const lb=h("div","links"),fill=()=>{lb.replaceChildren();srcLinks(r).forEach(([tx,u])=>{const a=h("a","lk",tx);a.href=u;a.target="_blank";a.rel="noopener noreferrer";lb.append(a)})};
         if(/ENVATO/i.test(r.shot_type)){const eu=document.createElement("input");eu.className="note";eu.placeholder="Tempel URL item Envato yang dipilih";eu.value=r.envato_url||"";eu.oninput=()=>{r.envato_url=eu.value.trim();fill();persist()};td.append(eu)}
         fill();td.append(lb);d.addEventListener("input",fill);
         const tools=h("div","links"),vf=h("button","lk",r.vf?"✓ Terverifikasi":"Tandai terverifikasi");vf.type="button";
         vf.onclick=()=>{r.vf=!r.vf;vf.textContent=r.vf?"✓ Terverifikasi":"Tandai terverifikasi";persist()};tools.append(vf);
+        if(r.how_orig!==undefined){const rs=h("button","lk","↩ Kembalikan asli");rs.type="button";rs.title="Kembalikan Scene dan How to get it ke versi sebelum diterjemahkan";rs.onclick=()=>restoreRow(r);tools.append(rs)}
         if(/ENVATO/i.test(r.shot_type)&&r.search_query){const pv=h("button","lk","Pratinjau stok"),bx=h("div","pv");pv.type="button";pv.onclick=()=>pexels(r,bx);tools.append(pv);td.append(tools,bx)}else td.append(tools);
       }
       tr.append(td)});
@@ -801,13 +804,17 @@ async function ask(title,prompt,apply){
   try{const m=apply(await callRetry(prompt));st.textContent=typeof m==="string"?m:title+": selesai."}
   catch(e){st.className="status err";st.textContent="Gagal"+(e&&e.code?" ("+e.code+")":"")+": "+((e&&e.message)||"coba lagi")}
 }
+function restoreRow(r){if(r.how_orig===undefined)return;r.how_to_get=r.how_orig;if(r.scene_orig!=null)r.scene=r.scene_orig;delete r.how_orig;delete r.scene_orig;render();persist()}
 function translateRow(r){
-  const T=trName(),i=rows.indexOf(r);
-  const p="Terjemahkan dua teks berikut ke bahasa "+T+". Balas HANYA array JSON berisi satu objek: [{\"vo_tr\":\"...\",\"how_tr\":\"...\"}].\nAturan: (1) vo_tr = terjemahan natural dari VO. (2) how_tr = terjemahan dari HOW TO GET. (3) Pertahankan PERSIS dan jangan diterjemahkan: semua URL, seluruh teks setelah \"PUT TEXT :\" (beserta labelnya), serta nama menu, tombol, fitur, dan merek persis seperti di antarmuka aslinya. (4) Pertahankan susunan baris dan penomoran. (5) Jika suatu teks sudah berbahasa "+T+", kembalikan string kosong untuk field itu.\n\nVO:\n"+r.vo+"\n\nHOW TO GET:\n"+r.how_to_get;
+  const T=trName(),i=rows.indexOf(r),hs=r.how_orig!==undefined?r.how_orig:r.how_to_get,ss=r.scene_orig!==undefined?r.scene_orig:r.scene;
+  const p="Terjemahkan tiga teks berikut ke bahasa "+T+". Balas HANYA array JSON berisi satu objek: [{\"vo_tr\":\"...\",\"scene\":\"...\",\"how_to_get\":\"...\"}].\nAturan: (1) vo_tr = terjemahan natural dari VO. (2) scene dan how_to_get = terjemahan dari SCENE dan HOW TO GET, ditulis seluruhnya dalam bahasa "+T+" tanpa campuran bahasa lain. (3) Pertahankan PERSIS dan jangan diterjemahkan: semua URL, seluruh teks setelah \"PUT TEXT :\" (itu teks yang tampil di video, bahasanya mengikuti VO), serta nama menu, tombol, fitur, dan merek persis seperti di antarmuka aslinya. (4) Pertahankan susunan baris dan penomoran. (5) Jika VO sudah berbahasa "+T+", isi vo_tr dengan string kosong.\n\nVO:\n"+r.vo+"\n\nSCENE:\n"+ss+"\n\nHOW TO GET:\n"+hs;
   return ask("Menerjemahkan baris "+(i+1)+" ke "+T,p,res=>{
     const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
-    r.vo_tr=String(x.vo_tr||"");r.how_tr=String(x.how_tr||"");render();persist();
-    if(!r.vo_tr&&!r.how_tr)return "Teks baris "+(i+1)+" sudah berbahasa "+T+", tidak ada yang diterjemahkan.";
+    const nh=String(x.how_to_get||"").trim(),ns=String(x.scene||"").trim(),nv=String(x.vo_tr||""),n2=t=>String(t).replace(/\s+/g," ").trim();
+    if(!nv&&n2(nh)===n2(hs)&&n2(ns)===n2(ss))return "Baris "+(i+1)+" sudah berbahasa "+T+", tidak ada yang diterjemahkan.";
+    if(r.how_orig===undefined){r.how_orig=r.how_to_get;r.scene_orig=r.scene}
+    r.vo_tr=nv;if(nh)r.how_to_get=nh;if(ns)r.scene=ns;
+    render();persist();
     if(r.flags&&r.flags.some(f=>f.indexOf("Terjemahan how-to")===0))return "Baris "+(i+1)+" diterjemahkan, tetapi URL atau teks PUT TEXT tidak identik dengan aslinya. Periksa tanda merah.";
   });
 }
@@ -925,7 +932,7 @@ $("edl").onclick=edl;$("audit").onclick=audit;sc();
 renderHist();
 $("run").onclick=run;$("xlsx").onclick=xlsx;
 $("csv").onclick=()=>{const q=v=>'"'+String(v||"").replace(/"/g,'""')+'"';dl("footage-guide.csv",new Blob(["\ufeff"+[COL5.map(c=>q(c[1])).concat(q("LINKS"),q("DONE"),q("VO TRANSLATION"),q("HOW TRANSLATION")).join(","),...rows.map(r=>COL5.map(c=>q(r[c[0]])).concat(q(srcLinks(r).map(x=>x[1]).join(" | ")),q(r.done?"YES":""),q(r.vo_tr||""),q(r.how_tr||"")).join(","))].join("\n")],{type:"text/csv;charset=utf-8"}))};
-$("json").onclick=()=>dl("footage-guide.json",new Blob([JSON.stringify(rows.map(r=>{const o={};COL5.forEach(c=>o[c[0]]=r[c[0]]);o.links=srcLinks(r).map(([label,url])=>({label,url}));o.done=!!r.done;o.vo_tr=r.vo_tr||"";o.how_tr=r.how_tr||"";o.note=r.note||"";o.score=r.score||0;o.tip=r.tip||"";o.verified=!!r.vf;o.envato_url=r.envato_url||"";return o}),null,2)],{type:"application/json"}));
+$("json").onclick=()=>dl("footage-guide.json",new Blob([JSON.stringify(rows.map(r=>{const o={};COL5.forEach(c=>o[c[0]]=r[c[0]]);o.links=srcLinks(r).map(([label,url])=>({label,url}));o.done=!!r.done;o.vo_tr=r.vo_tr||"";o.how_orig=r.how_orig||"";o.scene_orig=r.scene_orig||"";o.note=r.note||"";o.score=r.score||0;o.tip=r.tip||"";o.verified=!!r.vf;o.envato_url=r.envato_url||"";return o}),null,2)],{type:"application/json"}));
 </script>
 </body>
 </html>
