@@ -127,6 +127,8 @@ input[type=color]{width:34px;height:30px;padding:0;border:1px solid var(--line);
 .lb img{max-width:min(92vw,540px);max-height:92vh;border-radius:12px;background:#fff}
 .tr{margin-top:6px;padding-left:8px;border-left:2px solid var(--acc);color:var(--mute);font-style:italic;font-size:.92em;white-space:pre-wrap;outline:none;overflow-wrap:anywhere}
 .vact{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}.vact .rg{margin-top:0}.vact .lk{padding:2px 9px;font-size:.8em;color:var(--mute);border-radius:99px}
+.linkbtn{background:none;border:0;padding:3px 0 0;box-shadow:none;color:var(--mute);font-size:.82em;font-weight:500;text-decoration:underline;cursor:pointer;text-align:left}
+.linkbtn:hover{transform:none;box-shadow:none;border:0;color:var(--ink)}
 html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:2px solid transparent;background-clip:content-box}
@@ -157,6 +159,7 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
   <div><label for="vmode">Mode visual</label><select id="vmode"><option>TALKING HEAD + B-ROLL</option><option>TALKING HEAD</option><option>AUDIO ONLY</option></select></div></div>
   <div class="field"><label for="topic">Subjek utama</label><input id="topic" placeholder="Contoh: NordVPN vs ExpressVPN"></div>
   <div class="field"><label for="aiplat">Platform video AI</label><select id="aiplat"><option>Google Flow</option><option>Gemini Video Generator</option><option>Platform lain</option></select></div>
+  <div class="field"><label class="tg"><span>Terjemahkan otomatis saat generate</span><input type="checkbox" data-k="trAuto"></label><button type="button" id="trcap" class="linkbtn" title="Buka pengaturan terjemahan"></button></div>
  </div>
  <div class="card">
   <h3>Sumber footage (opsional)</h3>
@@ -289,6 +292,7 @@ function setFav(){
   const l=document.getElementById("fav");if(l)l.href="data:image/svg+xml,"+encodeURIComponent(svg);
   const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=a;
 }
+function trCap(){const c=document.getElementById("trcap");if(c)c.textContent="Bahasa tujuan: "+trName()+" · ubah di Pengaturan"}
 function applyS(){
   const R=document.documentElement,st=R.style;
   R.dataset.eff=S.theme==="system"?(mq.matches?"dark":"light"):S.theme;
@@ -299,16 +303,18 @@ function applyS(){
   R.classList.toggle("noanim",!S.anim);R.classList.toggle("noglow",!S.glow);R.classList.toggle("fill",!!S.fill);
   [3,4,5,6].forEach(n=>R.classList.toggle("hc"+n,!S["c"+n]));
   setFav();
+  trCap();
 }
 function saveS(){try{localStorage.setItem("sb_settings_v1",JSON.stringify(S))}catch(e){}}
 if(mq.addEventListener)mq.addEventListener("change",()=>{if(S.theme==="system")applyS()});
+const BYK={};
 function bindS(){
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k,cb=el.type==="checkbox",nm=el.type==="range"||el.type==="number"||el.dataset.num==="1";
     const o=()=>{const x=document.getElementById("o-"+k);if(x)x.textContent=el.value};
     const set=()=>{if(cb)el.checked=!!S[k];else el.value=S[k];o()};
-    SYNC.push(set);set();
-    el.addEventListener("input",()=>{let v=cb?el.checked:el.value;if(nm&&v!=="")v=+v;S[k]=v;saveS();applyS();o();if(k==="chunk"||k==="envMin"||k==="envMax")sc()});
+    SYNC.push(set);(BYK[k]=BYK[k]||[]).push([el,set]);set();
+    el.addEventListener("input",()=>{let v=cb?el.checked:el.value;if(nm&&v!=="")v=+v;S[k]=v;saveS();applyS();o();(BYK[k]||[]).forEach(([e2,f])=>{if(e2!==el)f()});if(k==="chunk"||k==="envMin"||k==="envMax")sc()});
   });
 }
 const SW=["#f0b81f","#4f8cff","#22c55e","#a855f7","#ec4899","#f97316","#14b8a6"];
@@ -389,7 +395,7 @@ function stinfo(){let n=0;Object.keys(localStorage).forEach(k=>{if(k.indexOf("sb
 function openSettings(t){showTab(t||curTab);stinfo();$("modal").classList.add("open");$("modal").setAttribute("aria-hidden","false")}
 function closeSettings(){$("modal").classList.remove("open");$("modal").setAttribute("aria-hidden","true")}
 applyS();bindS();buildSw();
-$("btnSet").onclick=()=>openSettings();$("engpill").onclick=()=>openSettings("engine");
+$("btnSet").onclick=()=>openSettings();$("trcap").onclick=()=>openSettings("engine");$("engpill").onclick=()=>openSettings("engine");
 $("mclose").onclick=closeSettings;$("modal").addEventListener("mousedown",e=>{if(e.target===$("modal"))closeSettings()});
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 $("btnTheme").onclick=()=>{S.theme=document.documentElement.dataset.eff==="dark"?"light":"dark";saveS();applyS();syncS()};
