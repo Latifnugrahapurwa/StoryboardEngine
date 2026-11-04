@@ -85,7 +85,7 @@ const ABOUT={
   extra:[["Instagram @elnprw","https://instagram.com/elnprw"]]
 };
 const QRIS="qris.jpg";
-const APP={name:"Footage Guide Generator",version:"1.1.0",year:2026};
+const APP={name:"Footage Guide Generator",version:"1.2.0",year:2026};
 function zoomImg(src){const d=h("div","lb"),i=document.createElement("img");i.src=src;i.alt="QRIS";d.append(i);d.onclick=()=>d.remove();document.body.append(d)}
 function buildAbout(){
   const box=$("aboutBox");box.replaceChildren();
@@ -363,7 +363,7 @@ function fillCell(td,r,k){
 // ===== MODE SKRIP =====
 const CAT=[["screen","Screen record"],["envato","Envato B-roll"],["ai","AI video"],["graphic","Graphic"],["product","Product visual"],["other","Lainnya"]];
 function catOf(t){t=String(t||"").toUpperCase();return/SCREEN/.test(t)?"screen":/ENVATO|B-ROLL/.test(t)?"envato":/AI VIDEO/.test(t)?"ai":/GRAPHIC/.test(t)?"graphic":/PRODUCT/.test(t)?"product":"other"}
-let selId="",svTf="all",svQ="",curScript="";
+let selId="",svTf="all",svQ="",curScript="",curLeft="";
 function scr(){return curScript||$("script").value}
 function ensureIds(){rows.forEach(r=>{if(!r.id)r.id="r"+Math.random().toString(36).slice(2,9)})}
 function svPrep(t,loose){
@@ -405,12 +405,25 @@ function matchF(r){
   if(svQ){const hay=[r.vo,r.vo_tr,r.scene,r.how_to_get,r.note,r.shot_type].join(" ").toLowerCase();if(hay.indexOf(svQ.toLowerCase())<0)return false}
   return true;
 }
-function svPlain(box,s){
-  s.split(/((?<=^|\n)[ \t]*\[[^\]\n]{1,60}\][ \t]*(?:\n|$))/).forEach(p=>{
-    if(!p)return;
-    const m=/^[ \t]*(\[[^\]\n]{1,60}\])[ \t]*\n?$/.exec(p);
-    if(m)box.append(h("div","sec",m[1]));else box.append(document.createTextNode(p));
+function svSecs(txt){const out=[],re=/^[ \t]*(\[[^\]\n]{1,60}\])[ \t]*$/gm;let m;while((m=re.exec(txt)))out.push({start:m.index,end:m.index+m[0].length,title:m[1]});return out}
+function svSeg(box,txt,a,b){
+  const seg=txt.slice(a,b);if(!seg)return;
+  if(seg.replace(/\s/g,"").length<12){box.append(document.createTextNode(seg));return}
+  const lead=seg.length-seg.trimStart().length,trail=seg.length-seg.trimEnd().length,sp=h("span","gap");
+  sp.append(document.createTextNode(seg));
+  const bt=h("button","gapadd","＋");bt.type="button";bt.title="Tambah scene untuk bagian ini";bt.setAttribute("aria-label","Tambah scene untuk bagian teks ini");
+  bt.onclick=e=>{e.stopPropagation();addSceneFrom(a+lead,b-trail)};sp.append(bt);box.append(sp);
+}
+function svPlain(box,txt,from,to,secs){
+  let pos=from;
+  secs.forEach((s,i)=>{
+    if(s.start<from||s.start>=to)return;
+    let e=s.start;if(e>pos&&txt[e-1]==="\n")e--;
+    svSeg(box,txt,pos,e);
+    const dv=h("div","sec",s.title);dv.dataset.sec=i;box.append(dv);
+    pos=s.end;if(txt[pos]==="\n")pos++;
   });
+  if(pos<to)svSeg(box,txt,pos,to);
 }
 function svCard(r,i){
   const sel=r.id===selId,d=h("div","scn c-"+catOf(r.shot_type)+(sel?" sel":"")+(r.done?" done":""));d.dataset.mid=r.id;
@@ -428,30 +441,78 @@ function svCard(r,i){
       if(ce&&k==="shot_type")ce.addEventListener("blur",()=>render());
       w.append(h("label","cl",lab),td);b.append(w);
     });
+    if(r.manual){const dl=h("button","del","Hapus scene tambahan");dl.type="button";dl.onclick=()=>{if(!confirm("Hapus scene "+(i+1)+"? Tindakan ini tidak bisa dibatalkan."))return;rows.splice(rows.indexOf(r),1);if(curLeft===r.id)curLeft="";selId="";persist();render()};b.append(dl)}
     d.append(b);
   }
   return d;
 }
+function svSections(txt,secs){
+  const g=secs.map((s,i)=>({i,title:s.title,from:s.end,to:i+1<secs.length?secs[i+1].start:txt.length,rows:[]}));
+  const pre={i:-1,title:"(Tanpa seksi)",from:0,to:secs.length?secs[0].start:txt.length,rows:[]};
+  rows.forEach(r=>{if(r.unm||r.start==null)return;const x=g.find(y=>r.start>=y.from&&r.start<y.to);(x||pre).rows.push(r)});
+  return[pre,...g];
+}
+function toggleDone(id){const r=rows.find(x=>x.id===id);if(!r)return;r.done=!r.done;persist();render()}
+function svGo(dl){
+  const v=rows.filter(matchF);if(!v.length)return;
+  const c=v.findIndex(r=>r.id===selId),n=c<0?(dl>0?0:v.length-1):Math.min(Math.max(c+dl,0),v.length-1);
+  selId=v[n].id;render();focusSel("both");
+}
+function svKeys(e){
+  if(S.view!=="script"||!rows.length||e.ctrlKey||e.metaKey||e.altKey)return;
+  if($("modal").classList.contains("open"))return;
+  const t=e.target,tag=t&&t.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT"||(t&&t.isContentEditable))return;
+  const k=e.key;
+  if(k==="ArrowDown"||k==="j"||k==="J"){e.preventDefault();svGo(1)}
+  else if(k==="ArrowUp"||k==="k"||k==="K"){e.preventDefault();svGo(-1)}
+  else if((k===" "||k==="d"||k==="D")&&tag!=="BUTTON"&&tag!=="A"&&tag!=="MARK"){if(!selId)return;e.preventDefault();toggleDone(selId)}
+  else if(k==="Escape"&&selId&&!document.querySelector(".lb")){selId="";render()}
+}
+document.addEventListener("keydown",svKeys);
+function markLeft(){
+  const st=$("status");
+  if(!selId){st.className="status err";st.textContent="Pilih scene dulu (klik blok di skrip), lalu tekan Tandai sampai sini.";return}
+  curLeft=selId;persist();render();st.className="status";st.textContent="Penanda berhenti disimpan di scene "+(rows.findIndex(r=>r.id===selId)+1)+".";
+}
+function resumeLeft(){
+  const st=$("status"),ix=curLeft?rows.findIndex(r=>r.id===curLeft):-1;
+  const t=rows.slice(ix+1).find(r=>!r.done&&matchF(r))||rows.find(r=>!r.done&&matchF(r));
+  if(!t){st.className="status";st.textContent="Semua scene yang tampil sudah selesai.";return}
+  selId=t.id;render();focusSel("both");st.className="status";st.textContent="Lanjut di scene "+(rows.indexOf(t)+1)+".";
+}
+function addSceneFrom(a,b){
+  const vo=scr().slice(a,b).trim(),st=$("status");if(!vo)return;
+  if($("prov").value!=="manual"&&!$("key").value.trim()){st.className="status err";st.textContent="Isi API key dulu untuk membuat scene baru.";openSettings("engine");return}
+  const r={id:"r"+Math.random().toString(36).slice(2,9),vo,shot_type:"",scene:"",how_to_get:"",ai_prompt:"",flags:[],extra_sources:[],manual:true,start:a,end:b,unm:false};
+  let i=rows.findIndex(x=>!x.unm&&x.start!=null&&x.start>a);if(i<0)i=rows.length;
+  rows.splice(i,0,r);selId=r.id;render();persist();return regen(r);
+}
 function scriptView(){
   ensureIds();ensureAnchors();
   if(selId&&!rows.some(r=>r.id===selId))selId="";
-  const txt=scr(),wrap=h("div","sv"),L=h("div","sv-l card"),R=h("div","sv-r"),box=h("div","sv-txt");
+  if(curLeft&&!rows.some(r=>r.id===curLeft))curLeft="";
+  const txt=scr(),secs=svSecs(txt),wrap=h("div","sv"),L=h("div","sv-l card"),R=h("div","sv-r"),box=h("div","sv-txt");
   const unm=rows.filter(r=>r.unm||r.start==null),mapped=rows.filter(r=>!r.unm&&r.start!=null).sort((a,b)=>a.start-b.start);
   let pos=0,cov=0;
   mapped.forEach(r=>{
     if(r.start<pos)return;
-    if(r.start>pos)svPlain(box,txt.slice(pos,r.start));
+    if(r.start>pos)svPlain(box,txt,pos,r.start,secs);
     const n=rows.indexOf(r)+1,m=h("mark","mk c-"+catOf(r.shot_type));
     m.dataset.mid=r.id;m.tabIndex=0;m.setAttribute("role","button");
     m.title="Scene "+n+" · "+(r.shot_type||"-")+(r.done?" · selesai":"");
     if(r.done)m.classList.add("done");if(r.id===selId)m.classList.add("sel");if(!matchF(r))m.classList.add("off");
     m.append(document.createTextNode(txt.slice(r.start,r.end)),h("sup","mn",String(n)));
-    box.append(m);pos=r.end;cov+=txt.slice(r.start,r.end).replace(/\s/g,"").length;
+    box.append(m);
+    if(r.id===curLeft)box.append(h("span","lo","◂ berhenti di sini"));
+    pos=r.end;cov+=txt.slice(r.start,r.end).replace(/\s/g,"").length;
   });
-  if(pos<txt.length)svPlain(box,txt.slice(pos));
+  if(pos<txt.length)svPlain(box,txt,pos,txt.length,secs);
   box.onclick=e=>{const m=e.target&&e.target.closest&&e.target.closest("mark");if(m)selectRow(m.dataset.mid,"mark")};
-  box.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&e.target.tagName==="MARK"){e.preventDefault();selectRow(e.target.dataset.mid,"mark")}};
-  L.append(box);
+  box.onkeydown=e=>{if(e.target.tagName!=="MARK")return;if(e.key==="Enter"){e.preventDefault();selectRow(e.target.dataset.mid,"mark")}else if(e.key===" "){e.preventDefault();toggleDone(e.target.dataset.mid)}};
+  const tools=h("div","sv-tools"),b1=h("button",null,"Lanjutkan dari terakhir"),b2=h("button",null,"Tandai sampai sini");b1.type="button";b2.type="button";b1.onclick=resumeLeft;b2.onclick=markLeft;
+  tools.append(b1,b2,h("span","dur","↑↓ pindah scene · D atau Spasi = selesai · Esc batal pilih · arahkan kursor ke teks tanpa warna untuk menambah scene (＋)"));
+  L.append(tools,box);
   const tot=Math.max(txt.replace(/^\s*\[[^\]\n]{1,60}\]\s*$/gm,"").replace(/\s/g,"").length,1),pct=Math.min(100,Math.round(cov/tot*100));
   const bar=h("div","sv-bar"),lgd=h("div","legend"),chips=h("div","chips");
   const lg=(key,label,count)=>{const b=h("button","lg"+(svTf===key?" on":"")+(key!=="all"?" c-"+key:""));b.type="button";b.append(h("i"),document.createTextNode(label+" "+count));b.onclick=()=>{svTf=(svTf===key&&key!=="all")?"all":key;render()};return b};
@@ -461,19 +522,34 @@ function scriptView(){
   [["Diterapkan",dn+"/"+rows.length,""],["Perlu cek",fc,fc?"warn":""],["Menunggu URL Envato",ev,ev?"warn":""],["Cakupan skrip",pct+"%",""]].forEach(([a,b,c])=>chips.append(h("span","chip "+c,a+" "+b)));
   if(unm.length)chips.append(h("span","chip warn","Tidak terpetakan "+unm.length));
   bar.append(lgd,chips);
+  const kids=[bar];
+  if(secs.length){
+    const toc=h("div","toc");
+    svSections(txt,secs).forEach(g=>{
+      if(g.i<0&&!g.rows.length)return;
+      const d=g.rows.filter(r=>r.done).length,n=g.rows.length,all=n>0&&d===n,w=h("div","tocw"),tb=h("button","tocb"),ck=h("button","tocck"+(all?" on":""),"✓");
+      tb.type="button";ck.type="button";tb.append(document.createTextNode(g.title.replace(/^\[|\]$/g,"")+" "),h("b",null,d+"/"+n));
+      tb.style.setProperty("--p",(n?d/n*100:0)+"%");
+      tb.onclick=()=>{const el=g.i>=0?document.querySelector('.sec[data-sec="'+g.i+'"]'):null;if(el)el.scrollIntoView({behavior:"smooth",block:"start"});else if(L.scrollTo)L.scrollTo({top:0,behavior:"smooth"})};
+      ck.title=all?"Batalkan tanda selesai untuk semua scene di seksi ini":"Tandai semua scene di seksi ini selesai";ck.disabled=!n;
+      ck.onclick=()=>{g.rows.forEach(r=>{r.done=!all});persist();render()};
+      w.append(tb,ck);toc.append(w);
+    });
+    kids.push(toc);
+  }
   const inp=document.createElement("input");inp.id="svq";inp.type="search";inp.placeholder="Cari di scene: VO, scene, how-to, catatan…";inp.value=svQ;inp.oninput=()=>{svQ=inp.value;render()};
   const list=h("div","sv-list");let shown=0;
   rows.forEach((r,i)=>{if(!matchF(r))return;shown++;list.append(svCard(r,i))});
   if(!shown)list.append(h("p","status","Tidak ada scene yang cocok dengan filter."));
-  R.append(inp,list);wrap.append(bar,L,R);return wrap;
+  R.append(inp,list);wrap.append(...kids,L,R);return wrap;
 }
 function selectRow(id,from){selId=(selId===id&&from==="card")?"":id;render();focusSel(from)}
 function focusSel(from){
   requestAnimationFrame(()=>{
     if(!selId)return;
     const m=document.querySelector('mark[data-mid="'+selId+'"]'),c=document.querySelector('.scn[data-mid="'+selId+'"]');
-    if(from==="card"&&m){m.scrollIntoView({block:"center",behavior:"smooth"});m.classList.add("pulse");setTimeout(()=>m.classList.remove("pulse"),1200)}
-    if(from==="mark"&&c)c.scrollIntoView({block:"nearest",behavior:"smooth"});
+    if((from==="card"||from==="both")&&m){m.scrollIntoView({block:from==="both"?"nearest":"center",behavior:"smooth"});m.classList.add("pulse");setTimeout(()=>m.classList.remove("pulse"),1200)}
+    if((from==="mark"||from==="both")&&c)c.scrollIntoView({block:"nearest",behavior:"smooth"});
   });
 }
 function updateCount(){const c=$("cnt");if(c)c.textContent=rows.filter(r=>r.done).length+" dari "+rows.length+" sudah diterapkan"}
@@ -539,9 +615,9 @@ $("mcancel").onclick=()=>{man=null;$("manual").hidden=true;if(rows.length)saveEn
 async function run(){
   const text=$("script").value.trim(),st=$("status");
   if(!text){st.className="status err";st.textContent="Isi skrip dulu.";return}
-  if($("prov").value==="manual"){rows=[];curId=null;curScript=text;selId="";render();man={cs:chunks(text),i:0,warn:[]};manShow();st.className="status";st.textContent="Mode salin-tempel: ikuti langkah di kartu di atas tabel.";return}
+  if($("prov").value==="manual"){rows=[];curId=null;curScript=text;selId="";curLeft="";render();man={cs:chunks(text),i:0,warn:[]};manShow();st.className="status";st.textContent="Mode salin-tempel: ikuti langkah di kartu di atas tabel.";return}
   if(!$("key").value.trim()){st.className="status err";st.textContent="Isi API key dulu untuk penyedia AI yang dipilih.";openSettings("engine");return}
-  const cs=chunks(text),warn=[];rows=[];curId=null;busy=true;curScript=text;selId="";render();$("run").disabled=true;st.className="status";
+  const cs=chunks(text),warn=[];rows=[];curId=null;busy=true;curScript=text;selId="";curLeft="";render();$("run").disabled=true;st.className="status";
   try{
     for(let i=0;i<cs.length;i++){
       if(i>0&&(+S.delay||0)>0){st.textContent="Jeda "+S.delay+" detik sebelum bagian "+(i+1)+"...";await new Promise(r=>setTimeout(r,S.delay*1000))}
@@ -583,7 +659,7 @@ function storeHist(a){
 function snap(){return{style:$("style").value,vmode:$("vmode").value,topic:$("topic").value,aiplat:$("aiplat").value,special:$("special").value,rules:$("rules").value,preset:$("preset").value,sel:SEL.slice()}}
 function saveEntry(){
   if(!rows.length)return;
-  const a=loadHist(),data={script:curScript||$("script").value,set:snap(),rows:rows.map(r=>({...r}))};
+  const a=loadHist(),data={script:curScript||$("script").value,leftOff:curLeft,set:snap(),rows:rows.map(r=>({...r}))};
   const e=a.find(x=>x.id===curId);
   if(e)Object.assign(e,data);
   else{
@@ -610,7 +686,7 @@ function renderHist(){
 }
 function openEntry(id){
   const e=loadHist().find(x=>x.id===id);if(!e)return;
-  $("script").value=e.script||"";curScript=e.script||"";selId="";const t=e.set||{};
+  $("script").value=e.script||"";curScript=e.script||"";selId="";curLeft=e.leftOff||"";const t=e.set||{};
   ["style","vmode","topic","aiplat","special","rules","preset"].forEach(k=>{if(t[k]!=null)$(k).value=t[k]});
   if(Array.isArray(t.sel)){t.sel.forEach(n=>{if(!SRC.includes(n))SRC.push(n)});SEL=t.sel.slice();saveSrc();renderSrc()}
   rows=e.rows.map(r=>({...r,flags:r.flags||[]}));curId=e.id;seen=0;render();
@@ -700,7 +776,7 @@ function translateRow(r){
 }
 function regen(r){
   const i=rows.indexOf(r),pv=rows[i-1],nx=rows[i+1];
-  const p=buildPrompt(r.vo,0,1)+"\n\nTUGAS KHUSUS: buat ULANG hanya SATU baris footage guide untuk VO di atas (array JSON berisi satu objek, vo harus sama persis). Berikan alternatif yang berbeda dari versi lama ("+r.shot_type+": "+r.scene+"). Baris sebelumnya bertipe "+(pv?pv.shot_type:"-")+", berikutnya "+(nx?nx.shot_type:"-")+"; jaga variasi.";
+  const p=buildPrompt(r.vo,0,1)+"\n\nTUGAS KHUSUS: buat ULANG hanya SATU baris footage guide untuk VO di atas (array JSON berisi satu objek, vo harus sama persis). "+(r.shot_type?"Berikan alternatif yang berbeda dari versi lama ("+r.shot_type+": "+r.scene+"). ":"")+"Baris sebelumnya bertipe "+(pv?pv.shot_type:"-")+", berikutnya "+(nx?nx.shot_type:"-")+"; jaga variasi.";
   ask("Membuat ulang baris "+(i+1),p,res=>{
     const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
     COL5.forEach(([k])=>{if(k!=="vo")r[k]=String(x[k]==null?"":x[k])});
