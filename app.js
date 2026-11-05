@@ -85,7 +85,7 @@ const ABOUT={
   extra:[["Instagram @elnprw","https://instagram.com/elnprw"]]
 };
 const QRIS="qris.jpg";
-const APP={name:"Footage Guide Generator",version:"1.2.0",year:2026};
+const APP={name:"Footage Guide Generator",version:"1.3.0",year:2026};
 function zoomImg(src){const d=h("div","lb"),i=document.createElement("img");i.src=src;i.alt="QRIS";d.append(i);d.onclick=()=>d.remove();document.body.append(d)}
 function buildAbout(){
   const box=$("aboutBox");box.replaceChildren();
@@ -109,7 +109,7 @@ function buildAbout(){
     const bt=h("div","row2"),dl=h("a","lk","Unduh QRIS");dl.href=QRIS;dl.download="qris-donasi.jpg";bt.append(dl);
     box.append(grp("Dukung pembuat (donasi)",h("p",null,"Jika engine ini membantu pekerjaan Anda, Anda bisa mendukung pengembangannya lewat QRIS. Donasi bersifat sukarela dan berapa pun nominalnya sangat berarti. Scan dengan aplikasi bank atau e-wallet berlogo QRIS, lalu pastikan nama penerima tertulis "+nm+"."),im,bt));
   }
-  box.append(grp("Tentang engine",h("p",null,APP.name+" membantu kreator video mengubah skrip final menjadi panduan footage per kalimat: jenis shot, sumber, langkah mendapatkannya, dan prompt AI siap salin, lengkap dengan aturan editing."),ul(["Dua tampilan: tabel 5 kolom, atau skrip utuh dengan blok warna dan kartu footage di samping","Tabel sesuai master prompt yang bisa diedit langsung","Tautan sumber ganda: Envato, Pexels, Pixabay, YouTube, dan halaman terkait","Centang progres, filter, catatan editor, dan evaluasi mutu oleh AI","Ekspor Excel, CSV, JSON, dan penanda EDL","Riwayat di browser, mode terang/gelap, dan pengaturan engine lengkap","Engine Gemini, ChatGPT, atau Claude dengan API key sendiri, atau mode salin-tempel"])));
+  box.append(grp("Tentang engine",h("p",null,APP.name+" membantu kreator video mengubah skrip final menjadi panduan footage per kalimat: jenis shot, sumber, langkah mendapatkannya, dan prompt AI siap salin, lengkap dengan aturan editing."),ul(["Dua tampilan: tabel 5 kolom, atau skrip utuh dengan blok warna dan kartu footage di samping","Tabel sesuai master prompt yang bisa diedit langsung","Tautan sumber ganda: Envato, Pexels, Pixabay, YouTube, dan halaman terkait","Centang progres, filter, catatan editor, dan evaluasi mutu oleh AI","Ekspor Excel, CSV, JSON, dan penanda EDL","Profil proyek, riwayat di browser, mode terang/gelap, dan pengaturan engine lengkap","Engine Gemini, ChatGPT, atau Claude dengan API key sendiri, atau mode salin-tempel"])));
   box.append(grp("Privasi & penggunaan",ul(["Tidak ada server milik pembuat: skrip, API key, dan riwayat hanya tersimpan di browser Anda.","Skrip dikirim hanya ke penyedia AI yang Anda pilih, tunduk pada ketentuan penyedia itu.","Hasil AI bisa keliru. Periksa URL, nama menu aplikasi, dan klaim sebelum dipakai di video.","Aplikasi hanya membuat tautan ke Envato, Pexels, dan sumber lain, tidak mengunduh footage. Patuhi lisensi masing-masing.","Nama dagang (Envato, Pexels, Pixabay, ChatGPT, Claude, Gemini, dan lainnya) milik pemiliknya; aplikasi ini tidak berafiliasi."])));
   const info=APP.name+" v"+APP.version+" | "+$("engpill").textContent+" | tema "+document.documentElement.dataset.eff+" | "+navigator.userAgent;
   const row=h("div","row2"),cp=h("button",null,"Salin info versi");cp.type="button";
@@ -265,7 +265,7 @@ function chunks(t){
 const SRC0=["Envato Elements","Screen recording","Website / dokumentasi resmi","AI video","Product visual / footage resmi","Grafik / motion graphic","Stok gratis (Pexels / Pixabay)","YouTube / video referensi"];
 let SRC=SRC0.slice(),SEL=[];
 try{const j=JSON.parse(localStorage.getItem("sb_srcs_v1")||"{}");if(Array.isArray(j.custom))SRC=SRC0.concat(j.custom.filter(x=>!SRC0.includes(x)));if(Array.isArray(j.sel))SEL=j.sel}catch(e){}
-function saveSrc(){try{localStorage.setItem("sb_srcs_v1",JSON.stringify({custom:SRC.filter(x=>!SRC0.includes(x)),sel:SEL}))}catch(e){}}
+function saveSrc(){try{localStorage.setItem("sb_srcs_v1",JSON.stringify({custom:SRC.filter(x=>!SRC0.includes(x)),sel:SEL}))}catch(e){}if(typeof workTick==="function")workTick()}
 function renderSrc(){
   const box=$("srcs");box.replaceChildren();
   SRC.forEach(name=>{
@@ -404,6 +404,83 @@ function matchF(r){
   if(svTf!=="all"&&catOf(r.shot_type)!==svTf)return false;
   if(svQ){const hay=[r.vo,r.vo_tr,r.scene,r.how_to_get,r.note,r.shot_type].join(" ").toLowerCase();if(hay.indexOf(svQ.toLowerCase())<0)return false}
   return true;
+}
+// ===== PROFIL PROYEK =====
+const PRK="sb_profiles_v1",PRA="sb_profile_active",WRK="sb_work_v1";
+let prAct="",wt=null;
+try{prAct=localStorage.getItem(PRA)||""}catch(e){}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function prList(){try{const a=JSON.parse(localStorage.getItem(PRK)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function prStore(a){try{localStorage.setItem(PRK,JSON.stringify(a));return true}catch(e){return false}}
+function prSetAct(v){prAct=v;try{localStorage.setItem(PRA,v)}catch(e){}}
+function prMsg(t,err){const m=$("prmsg");m.textContent=t;m.style.color=err?"var(--red)":""}
+function prSnap(withMp){
+  const d={style:$("style").value,vmode:$("vmode").value,aiplat:$("aiplat").value,special:$("special").value,preset:$("preset").value,rules:$("rules").value,sel:SEL.slice().sort(),trAuto:!!S.trAuto,trLang:S.trLang,lang:S.lang,envMin:+S.envMin,envMax:+S.envMax};
+  if(withMp){const st=mpState();if(st.id==="__def")d.mpId="__def";else if(st.p&&!st.dirty)d.mpId=st.p.id;else d.mpText=$("mpx").value}
+  return d;
+}
+function prApply(d,skipMp){
+  const msgs=[];
+  [["style",d.style],["vmode",d.vmode],["aiplat",d.aiplat],["special",d.special],["preset",d.preset],["rules",d.rules]].forEach(([id,v])=>{if(v!=null)$(id).value=v});
+  try{localStorage.setItem(RK,$("rules").value)}catch(e){}
+  if(Array.isArray(d.sel)){d.sel.forEach(n=>{if(!SRC.includes(n))SRC.push(n)});SEL=d.sel.slice();saveSrc();renderSrc()}
+  ["trAuto","trLang","lang","envMin","envMax"].forEach(k=>{if(d[k]!=null)S[k]=d[k]});saveS();applyS();syncS();
+  if(!skipMp){
+    if(d.mpText!=null){setAct("");$("mpx").value=d.mpText}
+    else if(d.mpId==="__def"){setAct("");$("mpx").value=MASTER}
+    else if(d.mpId){const p=mpList().find(x=>x.id===d.mpId);if(p){setAct(p.id);$("mpx").value=p.text}else{setAct("");$("mpx").value=MASTER;msgs.push("preset master prompt untuk profil ini sudah dihapus, jadi dipakai master prompt bawaan")}}
+    $("mpx").oninput();
+  }
+  sc();pill();return msgs;
+}
+function prRefresh(){
+  const sel=$("prsel"),a=prList(),p=a.find(x=>x.id===prAct);
+  const dirty=!!p&&JSON.stringify(prSnap(true))!==JSON.stringify(p.data);
+  sel.replaceChildren();
+  const add=(v,t)=>{const o=document.createElement("option");o.value=v;o.textContent=t;sel.append(o)};
+  add("","Tanpa profil (pengaturan saat ini)");
+  a.forEach(x=>add(x.id,x.name+(p&&x.id===p.id&&dirty?" • diubah":"")));
+  sel.value=p?p.id:"";$("prupd").disabled=!p;$("prdel").disabled=!p;
+}
+function workSave(){try{localStorage.setItem(WRK,JSON.stringify({...prSnap(false),topic:$("topic").value}))}catch(e){}}
+function workTick(e){
+  if(e&&e.target&&["script","srcnew","prname","svq","mpname"].includes(e.target.id))return;
+  clearTimeout(wt);wt=setTimeout(()=>{workSave();prRefresh()},400);
+}
+function prInit(){
+  try{const w=JSON.parse(localStorage.getItem(WRK)||"null");if(w){if(w.topic!=null)$("topic").value=w.topic;prApply(w,true)}}catch(e){}
+  prRefresh();
+  document.addEventListener("input",workTick,true);document.addEventListener("change",workTick,true);
+  $("prsel").onchange=()=>{
+    const v=$("prsel").value;
+    if(!v){prSetAct("");prRefresh();prMsg("Tidak memakai profil. Pengaturan saat ini tetap.");return}
+    const p=prList().find(x=>x.id===v);if(!p)return;
+    prSetAct(p.id);const m=prApply(p.data);workSave();prRefresh();
+    prMsg('Profil "'+p.name+'" dipakai.'+(m.length?" Catatan: "+m.join("; ")+".":""));
+  };
+  $("prnew").onclick=()=>{$("prrow").hidden=false;$("prname").focus()};
+  $("prcancel").onclick=()=>{$("prrow").hidden=true;$("prname").value=""};
+  $("prsave").onclick=()=>{
+    const n=$("prname").value.trim(),a=prList();
+    if(!n){prMsg("Isi nama profil dulu.",1);return}
+    if(a.some(x=>x.name.toLowerCase()===n.toLowerCase())){prMsg("Nama sudah dipakai. Pakai nama lain, atau pilih profil itu lalu tekan Perbarui.",1);return}
+    if(a.length>=20){prMsg("Maksimal 20 profil. Hapus yang tidak dipakai.",1);return}
+    const id=uid();a.push({id,name:n,data:prSnap(true)});
+    if(!prStore(a)){prMsg("Gagal menyimpan: penyimpanan browser penuh.",1);return}
+    prSetAct(id);$("prrow").hidden=true;$("prname").value="";prRefresh();prMsg('Profil "'+n+'" disimpan dan dipilih.');
+  };
+  $("prname").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("prsave").onclick()}else if(e.key==="Escape"){$("prcancel").onclick()}};
+  $("prupd").onclick=()=>{
+    const a=prList(),p=a.find(x=>x.id===prAct);if(!p)return;
+    if(!confirm('Timpa profil "'+p.name+'" dengan pengaturan saat ini?'))return;
+    p.data=prSnap(true);if(!prStore(a)){prMsg("Gagal menyimpan: penyimpanan browser penuh.",1);return}
+    prRefresh();prMsg('Profil "'+p.name+'" diperbarui.');
+  };
+  $("prdel").onclick=()=>{
+    const a=prList(),p=a.find(x=>x.id===prAct);if(!p)return;
+    if(!confirm('Hapus profil "'+p.name+'"? Tindakan ini tidak bisa dibatalkan.'))return;
+    prStore(a.filter(x=>x.id!==p.id));prSetAct("");prRefresh();prMsg('Profil "'+p.name+'" dihapus. Pengaturan saat ini tidak berubah.');
+  };
 }
 function svSecs(txt){const out=[],re=/^[ \t]*(\[[^\]\n]{1,60}\])[ \t]*$/gm;let m;while((m=re.exec(txt)))out.push({start:m.index,end:m.index+m[0].length,title:m[1]});return out}
 function svSeg(box,txt,a,b){
@@ -663,7 +740,7 @@ function saveEntry(){
   const e=a.find(x=>x.id===curId);
   if(e)Object.assign(e,data);
   else{
-    curId=Date.now().toString(36);
+    curId=uid();
     const sc=$("script").value.trim().replace(/\s+/g," ");
     a.unshift({id:curId,t:Date.now(),title:$("topic").value.trim()||sc.slice(0,50)||"Tanpa judul",...data});
   }
@@ -855,7 +932,7 @@ $("mpsave").onclick=()=>{
   if(!n){mpMsg("Isi nama preset dulu.",1);return}
   if(a.some(p=>p.name.toLowerCase()===n.toLowerCase())){mpMsg("Nama sudah dipakai. Pakai nama lain, atau pilih preset itu lalu tekan Perbarui.",1);return}
   if(a.length>=20){mpMsg("Maksimal 20 preset. Hapus yang tidak dipakai.",1);return}
-  const id=Date.now().toString(36);a.push({id,name:n,text:$("mpx").value});
+  const id=uid();a.push({id,name:n,text:$("mpx").value});
   if(!mpStore(a)){mpMsg("Gagal menyimpan: penyimpanan browser penuh.",1);return}
   setAct(id);$("mpname").value="";mpRefresh();mpMsg('Preset "'+n+'" disimpan dan dipilih.');
 };
@@ -884,7 +961,7 @@ $("hfile").onchange=async()=>{
   catch(e){$("status").className="status err";$("status").textContent="File riwayat tidak valid."}
   $("hfile").value="";
 };
-$("edl").onclick=edl;$("audit").onclick=audit;sc();
+$("edl").onclick=edl;$("audit").onclick=audit;sc();prInit();
 renderHist();
 $("run").onclick=run;$("xlsx").onclick=xlsx;
 $("csv").onclick=()=>{const q=v=>'"'+String(v||"").replace(/"/g,'""')+'"';dl("footage-guide.csv",new Blob(["\ufeff"+[COL5.map(c=>q(c[1])).concat(q("LINKS"),q("DONE"),q("VO TRANSLATION"),q("HOW TRANSLATION")).join(","),...rows.map(r=>COL5.map(c=>q(r[c[0]])).concat(q(srcLinks(r).map(x=>x[1]).join(" | ")),q(r.done?"YES":""),q(r.vo_tr||""),q(r.how_tr||"")).join(","))].join("\n")],{type:"text/csv;charset=utf-8"}))};

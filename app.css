@@ -175,3 +175,6 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
 .gapadd{opacity:0;margin-left:4px;padding:0 7px;border-radius:99px;font-size:.8em;line-height:1.5;vertical-align:middle;transition:opacity .15s}
 .gap:hover .gapadd,.gap:focus-within .gapadd,.gapadd:focus{opacity:1}
 @media(hover:none){.gapadd{opacity:.65}}
+
+.pr .row2 button{padding:5px 8px;font-size:.85em}
+.pr .status{margin-top:8px}
