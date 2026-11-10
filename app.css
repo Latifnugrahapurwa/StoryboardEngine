@@ -178,3 +178,10 @@ html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!importan
 
 .pr .row2 button{padding:5px 8px;font-size:.85em}
 .pr .status{margin-top:8px}
+
+.newb{font-size:.88em;padding:6px 12px;border-radius:99px;font-weight:700}
+@media(max-width:700px){.newb span{display:none}}
+.go2{background:var(--acc);color:var(--acc-ink);border-color:transparent;font-weight:700}
+.mk.pk{outline:2px dashed var(--acc);outline-offset:2px}
+.scn.pk{border-style:dashed;border-color:var(--acc)}
+.gt tr.pk td{background:color-mix(in srgb,var(--acc) 10%,transparent)}

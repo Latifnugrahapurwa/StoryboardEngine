@@ -85,7 +85,7 @@ const ABOUT={
   extra:[["Instagram @elnprw","https://instagram.com/elnprw"]]
 };
 const QRIS="qris.jpg";
-const APP={name:"Footage Guide Generator",version:"1.3.0",year:2026};
+const APP={name:"Footage Guide Generator",version:"1.4.0",year:2026};
 function zoomImg(src){const d=h("div","lb"),i=document.createElement("img");i.src=src;i.alt="QRIS";d.append(i);d.onclick=()=>d.remove();document.body.append(d)}
 function buildAbout(){
   const box=$("aboutBox");box.replaceChildren();
@@ -264,19 +264,19 @@ function chunks(t){
 }
 const SRC0=["Envato Elements","Screen recording","Website / dokumentasi resmi","AI video","Product visual / footage resmi","Grafik / motion graphic","Stok gratis (Pexels / Pixabay)","YouTube / video referensi"];
 let SRC=SRC0.slice(),SEL=[];
-try{const j=JSON.parse(localStorage.getItem("sb_srcs_v1")||"{}");if(Array.isArray(j.custom))SRC=SRC0.concat(j.custom.filter(x=>!SRC0.includes(x)));if(Array.isArray(j.sel))SEL=j.sel}catch(e){}
-function saveSrc(){try{localStorage.setItem("sb_srcs_v1",JSON.stringify({custom:SRC.filter(x=>!SRC0.includes(x)),sel:SEL}))}catch(e){}if(typeof workTick==="function")workTick()}
+try{localStorage.removeItem("sb_srcs_v1")}catch(e){}
+function saveSrc(){if(typeof workTick==="function")workTick()}
 function renderSrc(){
   const box=$("srcs");box.replaceChildren();
   SRC.forEach(name=>{
     const l=h("label","opt"),c=document.createElement("input");c.type="checkbox";c.checked=SEL.includes(name);
-    c.onchange=()=>{SEL=c.checked?SEL.concat(name):SEL.filter(x=>x!==name);saveSrc()};
+    c.onchange=()=>{SEL=c.checked?SEL.concat(name):SEL.filter(x=>x!==name);saveSrc();if(curId)persist()};
     const sp=h("span",null,name);sp.title=name;l.append(c,sp);
-    if(!SRC0.includes(name)){const x=h("button","rm","×");x.type="button";x.title="Hapus sumber";x.setAttribute("aria-label","Hapus sumber "+name);x.onclick=e=>{e.preventDefault();SRC=SRC.filter(y=>y!==name);SEL=SEL.filter(y=>y!==name);saveSrc();renderSrc()};l.append(x)}
+    if(!SRC0.includes(name)){const x=h("button","rm","×");x.type="button";x.title="Hapus sumber";x.setAttribute("aria-label","Hapus sumber "+name);x.onclick=e=>{e.preventDefault();SRC=SRC.filter(y=>y!==name);SEL=SEL.filter(y=>y!==name);saveSrc();renderSrc();if(curId)persist()};l.append(x)}
     box.append(l);
   });
 }
-$("srcadd").onclick=()=>{const v=$("srcnew").value.trim();if(!v)return;if(!SRC.includes(v))SRC.push(v);if(!SEL.includes(v))SEL.push(v);$("srcnew").value="";saveSrc();renderSrc()};
+$("srcadd").onclick=()=>{const v=$("srcnew").value.trim();if(!v)return;if(!SRC.includes(v))SRC.push(v);if(!SEL.includes(v))SEL.push(v);$("srcnew").value="";saveSrc();renderSrc();if(curId)persist()};
 $("srcnew").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("srcadd").onclick()}};
 function srcText(){return SEL.length?SEL.join(", ")+" (use ONLY these sources, except SCREEN RECORD — DEVICE / SOFTWARE for apps/devices the user owns; do not use any other source)":"Not specified (choose according to the master prompt rules)"}
 renderSrc();
@@ -306,6 +306,7 @@ function check(r,n){
   if(/AI VIDEO/i.test(r.shot_type)&&!r.ai_prompt.trim())f.push("Baris AI tanpa prompt");
   if(/ENVATO/i.test(r.shot_type)&&!r.envato_url&&!/envato\.com\/\S+/i.test(r.how_to_get))f.push("Isi URL item Envato");
   if(/SCREEN RECORD/i.test(r.shot_type)&&/BELUM TERVERIFIKASI/i.test(r.how_to_get))f.push("Verifikasi URL sumber");
+  if(!srcAllowed(r))f.push("Tipe shot di luar sumber footage yang dipilih");
   if(r.how_orig!==undefined){const o=r.how_orig,u=(o.match(/https?:\/\/[^\s)"'<>]+/g)||[]).some(x=>!r.how_to_get.includes(x)),p=(o.match(/PUT TEXT\s*:[^\n]*/gi)||[]).some(l=>!r.how_to_get.includes(l.trim()));if(u||p)f.push("Terjemahan how-to: URL/PUT TEXT tidak identik dengan aslinya")}
   return f;
 }
@@ -348,7 +349,8 @@ function fillCell(td,r,k){
         const rg=h("button","rg","↻ Buat ulang baris");rg.type="button";rg.onclick=()=>regen(r);
         const tl=h("button","rg",(r.vo_tr||r.how_orig!==undefined)?"Terjemahkan ulang":"Terjemahkan");tl.type="button";tl.title="Terjemahan VO tampil di bawah VO asli; Scene dan How to get it diubah ke "+trName()+" (bahasa tujuan diatur di Pengaturan)";
         tl.onclick=async()=>{tl.disabled=true;tl.textContent="Menerjemahkan…";await translateRow(r);tl.disabled=false;tl.textContent="Terjemahkan ulang"};
-        const va=h("div","vact");va.append(rg,tl);td.append(va);
+        const pk=h("button","rg",picked.has(r.id)?"☑ Dipilih":"☐ Pilih");pk.type="button";pk.title="Pilih scene ini untuk Generate ulang pilihan";pk.onclick=()=>{togglePick(r.id);render()};
+        const va=h("div","vact");va.append(rg,tl,pk);td.append(va);
       }
       if(k==="how_to_get"){
         const lb=h("div","links"),fill=()=>{lb.replaceChildren();srcLinks(r).forEach(([tx,u])=>{const a=h("a","lk",tx);a.href=u;a.target="_blank";a.rel="noopener noreferrer";lb.append(a)})};
@@ -442,13 +444,14 @@ function prRefresh(){
   a.forEach(x=>add(x.id,x.name+(p&&x.id===p.id&&dirty?" • diubah":"")));
   sel.value=p?p.id:"";$("prupd").disabled=!p;$("prdel").disabled=!p;
 }
-function workSave(){try{localStorage.setItem(WRK,JSON.stringify({...prSnap(false),topic:$("topic").value}))}catch(e){}}
+function workSave(){try{localStorage.setItem(WRK,JSON.stringify({...prSnap(false),topic:$("topic").value,custom:SRC.filter(x=>!SRC0.includes(x))}))}catch(e){}}
 function workTick(e){
   if(e&&e.target&&["script","srcnew","prname","svq","mpname"].includes(e.target.id))return;
   clearTimeout(wt);wt=setTimeout(()=>{workSave();prRefresh()},400);
 }
 function prInit(){
-  try{const w=JSON.parse(localStorage.getItem(WRK)||"null");if(w){if(w.topic!=null)$("topic").value=w.topic;prApply(w,true)}}catch(e){}
+  $("btnNew").onclick=newProject;
+  try{const w=JSON.parse(localStorage.getItem(WRK)||"null");if(w){if(w.topic!=null)$("topic").value=w.topic;if(Array.isArray(w.custom))SRC=SRC0.concat(w.custom.filter(x=>!SRC0.includes(x)));prApply(w,true)}}catch(e){}
   prRefresh();
   document.addEventListener("input",workTick,true);document.addEventListener("change",workTick,true);
   $("prsel").onchange=()=>{
@@ -482,6 +485,67 @@ function prInit(){
     prStore(a.filter(x=>x.id!==p.id));prSetAct("");prRefresh();prMsg('Profil "'+p.name+'" dihapus. Pengaturan saat ini tidak berubah.');
   };
 }
+// ===== GENERATE ULANG (baris / pilihan) & PROYEK BARU =====
+const picked=new Set();
+function togglePick(id){if(picked.has(id))picked.delete(id);else picked.add(id)}
+function needKey(){
+  if($("prov").value==="manual"||$("key").value.trim())return true;
+  const st=$("status");st.className="status err";st.textContent="Isi API key dulu untuk generate ulang.";openSettings("engine");return false;
+}
+function srcAllowed(r){
+  if(!SEL.length)return true;
+  const t=String(r.shot_type||"").toUpperCase(),has=n=>SEL.includes(n);
+  if(/DEVICE\s*\/\s*SOFTWARE/.test(t))return true;
+  const c=catOf(r.shot_type);
+  if(c==="screen")return has("Screen recording")||has("Website / dokumentasi resmi");
+  if(c==="envato")return has("Envato Elements")||has("Stok gratis (Pexels / Pixabay)");
+  if(c==="ai")return has("AI video");
+  if(c==="graphic")return has("Grafik / motion graphic");
+  if(c==="product")return has("Product visual / footage resmi");
+  return true;
+}
+function applyGen(r,x){
+  COL5.forEach(([k])=>{if(k!=="vo")r[k]=String(x[k]==null?"":x[k])});
+  r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");
+  r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];
+  r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");
+  r.score=0;r.tip="";r.envato_url="";r.vf=false;r.trChk=false;delete r.how_orig;delete r.scene_orig;delete r.how_tr;
+}
+function regenPrompt(b){
+  const items=b.map(r=>{const i=rows.indexOf(r),pv=rows[i-1],nx=rows[i+1];
+    return "n="+(i+1)+"\nVO: "+r.vo+(r.shot_type?"\nVERSI LAMA: "+r.shot_type+" | "+r.scene:"")+"\nBARIS SEBELUMNYA: "+(pv?pv.shot_type:"-")+" | BERIKUTNYA: "+(nx?nx.shot_type:"-")}).join("\n---\n");
+  return buildPrompt(items,0,1)+"\n\nTUGAS KHUSUS: buat ULANG footage guide untuk setiap VO di atas. Balas HANYA array JSON berisi SATU objek untuk SETIAP n (jangan ada yang terlewat), berurutan, dan setiap objek memuat field \"n\" (nomor persis seperti di atas) beserta semua field footage guide biasa. Field \"vo\" harus sama persis dengan VO-nya. Jika ada VERSI LAMA, berikan alternatif yang berbeda. Variasikan dengan baris sebelumnya/berikutnya. PERIKSA ULANG daftar PREFERRED SOURCES di atas (daftar ini sudah diperbarui, termasuk sumber yang baru ditambahkan pengguna) dan hanya pakai sumber itu.";
+}
+function bulkRegen(targets){
+  const size=5,B=[],tot={ok:0,miss:0},isMan=$("prov").value==="manual";
+  for(let i=0;i<targets.length;i+=size)B.push(targets.slice(i,i+size));
+  const one=k=>{
+    const b=B[k],last=k===B.length-1;
+    return ask(targets.length===1?"Membuat ulang scene "+(rows.indexOf(b[0])+1):"Membuat ulang scene terpilih (batch "+(k+1)+" dari "+B.length+")",regenPrompt(b),res=>{
+      const arr=Array.isArray(res)?res:[];
+      b.forEach((r,j)=>{const x=arr.find(y=>(y.n|0)===rows.indexOf(r)+1)||(arr.length===b.length?arr[j]:null);if(!x){tot.miss++;return}applyGen(r,x);picked.delete(r.id);tot.ok++});
+      render();persist();
+      if(isMan&&!last)setTimeout(()=>one(k+1),0);
+      return last?"Generate ulang selesai: "+tot.ok+" scene diperbarui"+(tot.miss?", "+tot.miss+" tidak dijawab AI (masih terpilih, coba lagi)":"")+".":"Batch "+(k+1)+" dari "+B.length+" selesai.";
+    });
+  };
+  return (async()=>{
+    if(isMan){await one(0);return}
+    for(let k=0;k<B.length;k++){if(k>0&&(+S.delay||0)>0)await sleep(S.delay*1000);if(await one(k)===false)break}
+  })();
+}
+function regen(r){if(!needKey())return;return bulkRegen([r])}
+function newProject(){
+  const st=$("status");
+  if(busy){st.className="status err";st.textContent="Tunggu proses generate selesai dulu sebelum membuat proyek baru.";return}
+  if(($("script").value.trim()||rows.length||$("special").value.trim())&&!confirm("Mulai proyek baru? Skrip, profil, pilihan proyek, sumber footage, gaya editing, dan instruksi khusus dikembalikan ke bawaan. Hasil yang sudah dibuat tetap ada di Riwayat."))return;
+  rows=[];curId=null;curScript="";selId="";curLeft="";picked.clear();seen=0;svTf="all";svQ="";flt="all";man=null;$("manual").hidden=true;
+  $("script").value="";["style","vmode","aiplat","preset"].forEach(i=>{$(i).selectedIndex=0});
+  $("topic").value="";$("special").value="";$("rules").value="";try{localStorage.setItem(RK,"")}catch(e){}
+  SRC=SRC0.slice();SEL=[];renderSrc();saveSrc();
+  prSetAct("");prRefresh();sc();workSave();render();
+  st.className="status";st.textContent="Proyek baru siap. Isi skrip lalu tekan Buat footage guide.";
+}
 function svSecs(txt){const out=[],re=/^[ \t]*(\[[^\]\n]{1,60}\])[ \t]*$/gm;let m;while((m=re.exec(txt)))out.push({start:m.index,end:m.index+m[0].length,title:m[1]});return out}
 function svSeg(box,txt,a,b){
   const seg=txt.slice(a,b);if(!seg)return;
@@ -503,7 +567,7 @@ function svPlain(box,txt,from,to,secs){
   if(pos<to)svSeg(box,txt,pos,to);
 }
 function svCard(r,i){
-  const sel=r.id===selId,d=h("div","scn c-"+catOf(r.shot_type)+(sel?" sel":"")+(r.done?" done":""));d.dataset.mid=r.id;
+  const sel=r.id===selId,d=h("div","scn c-"+catOf(r.shot_type)+(sel?" sel":"")+(r.done?" done":"")+(picked.has(r.id)?" pk":""));d.dataset.mid=r.id;
   const hd=h("div","scn-h"),dnb=h("button","dnb"+(r.done?" on":""),"✓");dnb.type="button";dnb.title=r.done?"Batalkan tanda selesai":"Tandai sudah diterapkan";dnb.setAttribute("aria-pressed",!!r.done);
   dnb.onclick=e=>{e.stopPropagation();r.done=!r.done;persist();render()};
   hd.append(dnb,h("i","dot"),h("span","sn",(i+1)+". "+String(r.vo||"").slice(0,70)),h("span","dur","~"+durOf(r)+" dtk"));
@@ -544,7 +608,7 @@ function svKeys(e){
   if(k==="ArrowDown"||k==="j"||k==="J"){e.preventDefault();svGo(1)}
   else if(k==="ArrowUp"||k==="k"||k==="K"){e.preventDefault();svGo(-1)}
   else if((k===" "||k==="d"||k==="D")&&tag!=="BUTTON"&&tag!=="A"&&tag!=="MARK"){if(!selId)return;e.preventDefault();toggleDone(selId)}
-  else if(k==="Escape"&&selId&&!document.querySelector(".lb")){selId="";render()}
+  else if(k==="Escape"&&(selId||picked.size)&&!document.querySelector(".lb")){selId="";picked.clear();render()}
 }
 document.addEventListener("keydown",svKeys);
 function markLeft(){
@@ -578,17 +642,23 @@ function scriptView(){
     const n=rows.indexOf(r)+1,m=h("mark","mk c-"+catOf(r.shot_type));
     m.dataset.mid=r.id;m.tabIndex=0;m.setAttribute("role","button");
     m.title="Scene "+n+" · "+(r.shot_type||"-")+(r.done?" · selesai":"");
-    if(r.done)m.classList.add("done");if(r.id===selId)m.classList.add("sel");if(!matchF(r))m.classList.add("off");
+    if(r.done)m.classList.add("done");if(r.id===selId)m.classList.add("sel");if(!matchF(r))m.classList.add("off");if(picked.has(r.id))m.classList.add("pk");
     m.append(document.createTextNode(txt.slice(r.start,r.end)),h("sup","mn",String(n)));
     box.append(m);
     if(r.id===curLeft)box.append(h("span","lo","◂ berhenti di sini"));
     pos=r.end;cov+=txt.slice(r.start,r.end).replace(/\s/g,"").length;
   });
   if(pos<txt.length)svPlain(box,txt,pos,txt.length,secs);
-  box.onclick=e=>{const m=e.target&&e.target.closest&&e.target.closest("mark");if(m)selectRow(m.dataset.mid,"mark")};
+  box.onclick=e=>{const m=e.target&&e.target.closest&&e.target.closest("mark");if(!m)return;if(e.ctrlKey||e.metaKey){togglePick(m.dataset.mid);render();return}selectRow(m.dataset.mid,"mark")};
+  box.addEventListener("mouseup",()=>setTimeout(()=>{
+    const s=window.getSelection&&window.getSelection();if(!s||s.isCollapsed)return;
+    const ids=[...box.querySelectorAll("mark")].filter(m=>s.containsNode(m,true)).map(m=>m.dataset.mid);
+    if(!ids.length)return;
+    picked.clear();ids.forEach(i=>picked.add(i));s.removeAllRanges();render();
+  },0));
   box.onkeydown=e=>{if(e.target.tagName!=="MARK")return;if(e.key==="Enter"){e.preventDefault();selectRow(e.target.dataset.mid,"mark")}else if(e.key===" "){e.preventDefault();toggleDone(e.target.dataset.mid)}};
   const tools=h("div","sv-tools"),b1=h("button",null,"Lanjutkan dari terakhir"),b2=h("button",null,"Tandai sampai sini");b1.type="button";b2.type="button";b1.onclick=resumeLeft;b2.onclick=markLeft;
-  tools.append(b1,b2,h("span","dur","↑↓ pindah scene · D atau Spasi = selesai · Esc batal pilih · arahkan kursor ke teks tanpa warna untuk menambah scene (＋)"));
+  tools.append(b1,b2,h("span","dur","↑↓ pindah scene · D atau Spasi = selesai · Esc batal pilih · blok teks atau Ctrl+klik blok untuk memilih beberapa scene · arahkan kursor ke teks tanpa warna untuk menambah scene (＋)"));
   L.append(tools,box);
   const tot=Math.max(txt.replace(/^\s*\[[^\]\n]{1,60}\]\s*$/gm,"").replace(/\s/g,"").length,1),pct=Math.min(100,Math.round(cov/tot*100));
   const bar=h("div","sv-bar"),lgd=h("div","legend"),chips=h("div","chips");
@@ -631,7 +701,7 @@ function focusSel(from){
 }
 function updateCount(){const c=$("cnt");if(c)c.textContent=rows.filter(r=>r.done).length+" dari "+rows.length+" sudah diterapkan"}
 function render(){
-  const out=$("out");const _sl=document.querySelector(".sv-l"),_sr=document.querySelector(".sv-r"),_keep=(_sl&&_sr)?[_sl.scrollTop,_sr.scrollTop]:null,_fq=!!(document.activeElement&&document.activeElement.id==="svq");out.replaceChildren();$("exp").hidden=!rows.length;const SC=nz($("script").value);rows.forEach(r=>{r.flags=check(r,SC)});
+  const out=$("out");const _sl=document.querySelector(".sv-l"),_sr=document.querySelector(".sv-r"),_keep=(_sl&&_sr)?[_sl.scrollTop,_sr.scrollTop]:null,_fq=!!(document.activeElement&&document.activeElement.id==="svq");out.replaceChildren();$("exp").hidden=!rows.length;ensureIds();const SC=nz($("script").value);rows.forEach(r=>{r.flags=check(r,SC)});
   if(!rows.length){seen=0;out.append(emptyView());return}
   const bar=h("div","bar"),sel=document.createElement("select"),cnt=h("span","dur","");cnt.id="cnt";
   [["all","Semua baris"],["todo","Belum diterapkan"],["done","Sudah diterapkan"]].forEach(([v,l])=>{const o=h("option",null,l);o.value=v;sel.append(o)});
@@ -639,14 +709,18 @@ function render(){
   const pn=pendingTr().length,trb=h("button",null,"Terjemahkan yang belum ("+pn+")");trb.type="button";trb.disabled=!pn;
   trb.title="Terjemahkan VO ke "+trName()+" untuk baris yang belum punya terjemahan"+(S.trAuto?"":" (termasuk Scene dan How to get it)");
   trb.onclick=()=>{const t=pendingTr();if(t.length)bulkTranslate(t,!S.trAuto)};
-  bar.append(sel,cnt,h("span","dur",insights()),trb);out.append(bar);
+  bar.append(sel,cnt,h("span","dur",insights()),trb);
+  const nP=rows.filter(r=>picked.has(r.id)).length;
+  if(nP){const pb=h("button","go2","↻ Generate ulang pilihan ("+nP+")"),pc=h("button",null,"Batal pilih");pb.type="button";pc.type="button";
+    pb.title="Buat ulang scene terpilih dengan sumber footage terbaru";
+    pb.onclick=()=>{if(needKey())bulkRegen(rows.filter(r=>picked.has(r.id)))};pc.onclick=()=>{picked.clear();render()};bar.append(pb,pc)}out.append(bar);
   if(S.view==="script"){out.append(scriptView());updateCount();seen=rows.length;if(_keep){const a=document.querySelector(".sv-l"),b=document.querySelector(".sv-r");if(a&&b){a.scrollTop=_keep[0];b.scrollTop=_keep[1]}}if(_fq){const i=$("svq");if(i){i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch(e){}}}return}
   const t=h("table","gt"),hd=h("thead"),hr=h("tr"),th0=h("th",null,"✓");th0.title="Sudah diterapkan di video";hr.append(th0);
   COL5.forEach(c=>hr.append(h("th",null,c[1])));hd.append(hr);t.append(hd);
   const tb=h("tbody");let shown=0;
   rows.forEach(r=>{
     if((flt==="todo"&&r.done)||(flt==="done"&&!r.done))return;shown++;
-    const tr=h("tr");if(r.done)tr.className="dn";{const ix=rows.indexOf(r);if(ix>=seen){tr.classList.add("new");tr.style.setProperty("--i",Math.min(ix-seen,10))}}
+    const tr=h("tr");if(r.done)tr.className="dn";if(picked.has(r.id))tr.classList.add("pk");{const ix=rows.indexOf(r);if(ix>=seen){tr.classList.add("new");tr.style.setProperty("--i",Math.min(ix-seen,10))}}
     const c0=h("td","ck"),cb=document.createElement("input");cb.type="checkbox";cb.checked=!!r.done;cb.setAttribute("aria-label","Sudah diterapkan");
     cb.onchange=()=>{r.done=cb.checked;tr.classList.toggle("dn",cb.checked);updateCount();persist()};
     c0.append(cb);tr.append(c0);
@@ -733,7 +807,7 @@ function storeHist(a){
   while(a.length){try{localStorage.setItem(HK,JSON.stringify(a));return true}catch(e){a.pop()}}
   return false;
 }
-function snap(){return{style:$("style").value,vmode:$("vmode").value,topic:$("topic").value,aiplat:$("aiplat").value,special:$("special").value,rules:$("rules").value,preset:$("preset").value,sel:SEL.slice()}}
+function snap(){return{style:$("style").value,vmode:$("vmode").value,topic:$("topic").value,aiplat:$("aiplat").value,special:$("special").value,rules:$("rules").value,preset:$("preset").value,sel:SEL.slice(),custom:SRC.filter(x=>!SRC0.includes(x))}}
 function saveEntry(){
   if(!rows.length)return;
   const a=loadHist(),data={script:curScript||$("script").value,leftOff:curLeft,set:snap(),rows:rows.map(r=>({...r}))};
@@ -765,7 +839,7 @@ function openEntry(id){
   const e=loadHist().find(x=>x.id===id);if(!e)return;
   $("script").value=e.script||"";curScript=e.script||"";selId="";curLeft=e.leftOff||"";const t=e.set||{};
   ["style","vmode","topic","aiplat","special","rules","preset"].forEach(k=>{if(t[k]!=null)$(k).value=t[k]});
-  if(Array.isArray(t.sel)){t.sel.forEach(n=>{if(!SRC.includes(n))SRC.push(n)});SEL=t.sel.slice();saveSrc();renderSrc()}
+  {const cu=Array.isArray(t.custom)?t.custom:(Array.isArray(t.sel)?t.sel.filter(n=>!SRC0.includes(n)):[]);SRC=SRC0.concat(cu.filter(n=>!SRC0.includes(n)));SEL=Array.isArray(t.sel)?t.sel.slice():[];saveSrc();renderSrc()}
   rows=e.rows.map(r=>({...r,flags:r.flags||[]}));curId=e.id;seen=0;render();
   $("status").className="status";$("status").textContent='Membuka riwayat "'+e.title+'" ('+fmt(e.t)+'). Perubahan di tabel tersimpan otomatis.';
   $("out").scrollIntoView({behavior:"smooth",block:"start"});
@@ -849,17 +923,6 @@ function translateRow(r){
     const o=applyTr(r,x,true);render();persist();
     if(o==="same")return "Baris "+(i+1)+" sudah berbahasa "+T+", tidak ada yang diterjemahkan.";
     if(r.flags&&r.flags.some(f=>f.indexOf("Terjemahan how-to")===0))return "Baris "+(i+1)+" diterjemahkan, tetapi URL atau teks PUT TEXT tidak identik dengan aslinya. Periksa tanda merah.";
-  });
-}
-function regen(r){
-  const i=rows.indexOf(r),pv=rows[i-1],nx=rows[i+1];
-  const p=buildPrompt(r.vo,0,1)+"\n\nTUGAS KHUSUS: buat ULANG hanya SATU baris footage guide untuk VO di atas (array JSON berisi satu objek, vo harus sama persis). "+(r.shot_type?"Berikan alternatif yang berbeda dari versi lama ("+r.shot_type+": "+r.scene+"). ":"")+"Baris sebelumnya bertipe "+(pv?pv.shot_type:"-")+", berikutnya "+(nx?nx.shot_type:"-")+"; jaga variasi.";
-  ask("Membuat ulang baris "+(i+1),p,res=>{
-    const x=Array.isArray(res)?res[0]:null;if(!x)throw{message:"Jawaban kosong"};
-    COL5.forEach(([k])=>{if(k!=="vo")r[k]=String(x[k]==null?"":x[k])});
-    r.source_url=String(x.source_url||"");r.search_query=String(x.search_query||"");r.page_query=String(x.page_query||"");r.target_site=String(x.target_site||"");r.web=searchOn();r.vo_tr=String(x.vo_tr||r.vo_tr||"");r.how_tr=String(x.how_tr||"");
-    r.extra_sources=Array.isArray(x.extra_sources)?x.extra_sources.filter(e=>e&&typeof e.url==="string").map(e=>({label:String(e.label||"Sumber"),url:e.url})):[];
-    r.score=0;r.tip="";r.envato_url="";r.vf=false;render();persist();
   });
 }
 function audit(){
